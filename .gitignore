@@ -1,0 +1,10 @@
+*.code-workspace
+docker/setup.bs
+
+*.pyc
+*.out
+*.pth
+*.png
+setup.bs
+
+temp/
