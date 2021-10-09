@@ -2,14 +2,7 @@ import cv2
 from typing import Tuple, Union
 import numpy as np
 
-
-def transpose_to_channels_first(np_arrray: np.array) -> np.array:
-    """Transpose np.array to open-cv format"""
-    if np_arrray.ndim == 3:
-        np_arrray = np.transpose(np_arrray, [1, 2, 0])
-    return np_arrray
-
-
+# TODO: remove these hardcodings after adding submodule with model
 channels_stats = {
     "means": {
         "B1": 1465.7796630859375,
@@ -59,13 +52,20 @@ channels = [
 ]
 
 
+def transpose_to_channels_first(np_arrray: np.array) -> np.array:
+    """Transpose np.array to open-cv format"""
+    if np_arrray.ndim == 3:
+        np_arrray = np.transpose(np_arrray, [1, 2, 0])
+    return np_arrray
+
+
 def convert_sat_np_for_vis(
-    img_path: np.array,
+    img_path: str,
     target_size: Union[None, Tuple[int]] = None,
 ) -> np.array:
     """Convert np.array to open-cv format.
     Args:
-        img (np.array): np.array to be converted
+        img_path (str): np.array to be converted
         target_size (Tuple[int], optional): Size of returned image.
                                             Defaults to [256, 256].
     Returns:
@@ -73,7 +73,6 @@ def convert_sat_np_for_vis(
     """
     img = np.load(img_path)
     img = img.astype(np.float32)
-    # img = img[:,:,[3,2,1]]
     if target_size is not None:
         img = cv2.resize(img, target_size)
 
