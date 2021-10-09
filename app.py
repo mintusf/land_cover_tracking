@@ -145,12 +145,11 @@ def add_marker(selected_polygon, polygons):
 )
 def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons):
 
-    # if selected_polygon == "None":
-    #     raise PreventUpdate
-
     coord = get_polygon_coord(polygons, int(selected_polygon))
 
-    coords = get_raster_from_coord(coord[0], coord[1], DATA_DIR)
+    coords = get_raster_from_coord(
+        lat=coord[0], long=coord[1], resolution=10, savedir=DATA_DIR
+    )
 
     img_paths = glob.glob(f"{DATA_DIR}/*.npy")
     for img_path in img_paths:
@@ -159,9 +158,18 @@ def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons)
         cv2.imwrite(png_path, img)
         png_name = os.path.split(png_path)[1].replace(".png", "")
 
+        # TODO: refactor to utils method
+        tile_coord = coords[png_name]
+        converted_coord = [
+            [tile_coord["lat"][0],
+            tile_coord["long"][0]],
+            [tile_coord["lat"][1],
+            tile_coord["long"][1]],
+        ]
+
         cur_children.append(
             dl.ImageOverlay(
-                id="shown-image", opacity=1, url=png_path, bounds=coords[png_name]
+                id="shown-image", opacity=1, url=png_path, bounds=converted_coord
             ),
         )
 
