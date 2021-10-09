@@ -37,9 +37,6 @@ app.layout = html.Div(
                     id="marker",
                 ),
                 dl.FeatureGroup([dl.EditControl(id="edit_control")]),
-                #     dl.ImageOverlay(
-                #     id="shown-image", opacity=1, url='test\\tile_0.png', bounds=[(50.11707512706952, 20.028790064107014), (50.151130686729644, 20.09469931390529)]
-                # ),
             ],
             style={
                 "width": "100%",
