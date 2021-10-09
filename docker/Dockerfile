@@ -20,8 +20,9 @@ RUN apt-get update -y \
   && rm -rf /var/lib/apt/lists/*
 
 # Create pipenv environment
+RUN alias python=python3.9
 COPY requirements.txt /tmp
-RUN pip install -r /tmp/requirements.txt
+RUN python -m pip install -r /tmp/requirements.txt
 
 SHELL ["/bin/bash", "-c"]
 
@@ -37,4 +38,3 @@ RUN passwd -d user
 USER user
 
 RUN ["/bin/bash"]
-RUN alias python=python3.9
