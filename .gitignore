@@ -8,3 +8,6 @@ docker/setup.bs
 setup.bs
 
 temp/
+
+sentinelhub_config.json
+/dash_temp

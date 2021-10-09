@@ -4,9 +4,15 @@ from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
-from flask import Flask
+from flask import Flask, send_from_directory
+import glob
+
+import os
+import cv2
 
 from utils.dash_utils import get_coord_from_feature
+from utils.sentinel_api import get_raster_from_coord
+from utils.io_utils import convert_sat_np_for_vis
 
 server = Flask(__name__)
 app = Dash(server=server)
@@ -23,6 +29,7 @@ app.layout = html.Div(
         dl.Map(
             center=[56, 10],
             zoom=4,
+            bounds=[[50, 20], [50.5, 20.5]],
             children=[
                 dl.TileLayer(),
                 dl.Marker(
@@ -41,9 +48,9 @@ app.layout = html.Div(
             id="map",
         ),
         html.Button(
-            id="calc_cover",
+            id="download_raster",
             children=html.H2(
-                "Calculate land cover", style={"textAlign": "center", "fontSize": 30}
+                "Download raster", style={"textAlign": "center", "fontSize": 30}
             ),
             style={
                 "display": "inline-block",
@@ -64,14 +71,22 @@ app.layout = html.Div(
     ]
 )
 
+DATA_DIR = "new"
+
+
+@server.route(f"/{DATA_DIR}/<path:path>")
+def get_mask_url(path):
+    """Serve a file from the upload directory."""
+    img = send_from_directory(DATA_DIR, path, as_attachment=True, cache_timeout=0)
+    return img
+
 
 @app.callback(
     Output("polygon-dropdown", "options"),
     Input("edit_control", "geojson"),
+    prevent_initial_call=True,
 )
 def mirror(x):
-    if not x or not x["features"]:
-        raise PreventUpdate
 
     # Prepare options
     choices = []
@@ -90,26 +105,67 @@ def mirror(x):
     return choices
 
 
+def get_polygon_coord(polygons, selected_polygon):
+    return [
+        [
+            polygons["features"][selected_polygon]["properties"]["_bounds"][0]["lat"],
+            polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lat"],
+        ],
+        [
+            polygons["features"][selected_polygon]["properties"]["_bounds"][0]["lng"],
+            polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lng"],
+        ],
+    ]
+
+
 @app.callback(
     [Output("marker", "position")],
     [Input("polygon-dropdown", "value"), State("edit_control", "geojson")],
 )
-def add_marker(chosen_polygon, polygons):
+def add_marker(selected_polygon, polygons):
     """Generate masks, if not generated yet, when image is selected"""
 
-    if chosen_polygon == "None":
-        raise PreventUpdate
+    if selected_polygon == "None":
+        return [[0, 0]]
     else:
-        return [
-            [
-                polygons["features"][int(chosen_polygon)]["properties"]["_bounds"][0][
-                    "lat"
-                ],
-                polygons["features"][int(chosen_polygon)]["properties"]["_bounds"][0][
-                    "lng"
-                ],
-            ]
-        ]
+        coord = get_polygon_coord(polygons, int(selected_polygon))
+        bottom_left_coord = [coord[0][0], coord[1][0]]
+        return [bottom_left_coord]
+
+
+@app.callback(
+    [Output("map", "children")],
+    [
+        Input("download_raster", "n_clicks"),
+        State("map", "children"),
+        State("polygon-dropdown", "value"),
+        State("edit_control", "geojson"),
+    ],
+    prevent_initial_call=True,
+)
+def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons):
+
+    # if selected_polygon == "None":
+    #     raise PreventUpdate
+
+    coord = get_polygon_coord(polygons, int(selected_polygon))
+
+    coords = get_raster_from_coord(coord[0], coord[1], DATA_DIR)
+
+    img_paths = glob.glob(f"{DATA_DIR}/*.npy")
+    for img_path in img_paths:
+        img = convert_sat_np_for_vis(img_path)
+        png_path = img_path.replace(".npy", ".png")
+        cv2.imwrite(png_path, img)
+        png_name = os.path.split(png_path)[1].replace(".png", "")
+
+        cur_children.append(
+            dl.ImageOverlay(
+                id="shown-image", opacity=1, url=png_path, bounds=coords[png_name]
+            ),
+        )
+
+    return [cur_children]
 
 
 app.run_server(debug=True, port=8888)
