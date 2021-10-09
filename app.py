@@ -161,10 +161,8 @@ def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons)
         # TODO: refactor to utils method
         tile_coord = coords[png_name]
         converted_coord = [
-            [tile_coord["lat"][0],
-            tile_coord["long"][0]],
-            [tile_coord["lat"][1],
-            tile_coord["long"][1]],
+            [tile_coord["lat"][0], tile_coord["long"][0]],
+            [tile_coord["lat"][1], tile_coord["long"][1]],
         ]
 
         cur_children.append(
