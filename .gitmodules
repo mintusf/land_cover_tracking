@@ -1,0 +1,3 @@
+[submodule "ai_engine"]
+	path = ai_engine
+	url = https://github.com/mintusf/land_cover_segmentation.git
