@@ -11,3 +11,4 @@ dash-leaflet==0.1.18
 flake8==3.9.2
 black==21.9b0
 pytest==6.2.5
+yacs==0.1.8

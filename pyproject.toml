@@ -20,6 +20,7 @@ flake8 = "^3.9.2"
 pytest = "^6.2.5"
 black = "^21.9b0"
 sentinelhub = "^3.4.0"
+yacs = "^0.1.8"
 
 [tool.poetry.dev-dependencies]
 
