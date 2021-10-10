@@ -1,4 +1,4 @@
-from dash import Dash
+from dash import Dash, callback_context
 from dash.dependencies import Output, Input, State
 from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
@@ -9,10 +9,16 @@ import glob
 
 import os
 import cv2
+from shutil import rmtree
 
 from utils.dash_utils import get_coord_from_feature
 from utils.sentinel_api import get_raster_from_coord
-from utils.io_utils import convert_sat_np_for_vis
+from utils.io_utils import (
+    convert_sat_np_for_vis,
+    get_next_folder_name,
+    write_json,
+    load_json,
+)
 
 server = Flask(__name__)
 app = Dash(server=server)
@@ -71,13 +77,15 @@ app.layout = html.Div(
     ]
 )
 
-DATA_DIR = "new"
+DATA_DIR = "app_data"
+coords_json_name = "coords.json"
+rmtree(DATA_DIR, ignore_errors=True)
 
 
 @server.route(f"/{DATA_DIR}/<path:path>")
 def get_mask_url(path):
     """Serve a file from the upload directory."""
-    img = send_from_directory(DATA_DIR, path, as_attachment=True, cache_timeout=0)
+    img = send_from_directory(DATA_DIR, path, as_attachment=True, cache_timeout=1)
     return img
 
 
@@ -91,16 +99,17 @@ def mirror(x):
     # Prepare options
     choices = []
     rect_idx = 1
-    for feat_idx, feature in enumerate(x["features"]):
-        if feature["properties"]["type"] == "rectangle":
-            coord = get_coord_from_feature(feature)
-            choices.append(
-                {
-                    "label": f"{rect_idx}: Bottom left coordinates: {coord}",
-                    "value": f"{feat_idx}",
-                }
-            )
-            rect_idx += 1
+    if x is not None:
+        for feat_idx, feature in enumerate(x["features"]):
+            if feature["properties"]["type"] == "rectangle":
+                coord = get_coord_from_feature(feature)
+                choices.append(
+                    {
+                        "label": f"{rect_idx}: Bottom left coordinates: {coord}",
+                        "value": f"{feat_idx}",
+                    }
+                )
+                rect_idx += 1
 
     return choices
 
@@ -124,7 +133,6 @@ def get_polygon_coord(polygons, selected_polygon):
 )
 def add_marker(selected_polygon, polygons):
     """Generate masks, if not generated yet, when image is selected"""
-
     if selected_polygon == "None":
         return [[0, 0]]
     else:
@@ -141,35 +149,52 @@ def add_marker(selected_polygon, polygons):
         State("polygon-dropdown", "value"),
         State("edit_control", "geojson"),
     ],
-    prevent_initial_call=True,
 )
 def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons):
 
-    coord = get_polygon_coord(polygons, int(selected_polygon))
+    ctx = callback_context.triggered
+    if ctx[0]["prop_id"] == "download_raster.n_clicks":
+        coord = get_polygon_coord(polygons, int(selected_polygon))
 
-    coords = get_raster_from_coord(
-        lat=coord[0], long=coord[1], resolution=10, savedir=DATA_DIR
-    )
-
-    img_paths = glob.glob(f"{DATA_DIR}/*.npy")
-    for img_path in img_paths:
-        img = convert_sat_np_for_vis(img_path)
-        png_path = img_path.replace(".npy", ".png")
-        cv2.imwrite(png_path, img)
-        png_name = os.path.split(png_path)[1].replace(".png", "")
-
-        # TODO: refactor to utils method
-        tile_coord = coords[png_name]
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
-
-        cur_children.append(
-            dl.ImageOverlay(
-                id="shown-image", opacity=1, url=png_path, bounds=converted_coord
-            ),
+        foldername = get_next_folder_name(DATA_DIR)
+        savedir = os.path.join(DATA_DIR, foldername)
+        coords = get_raster_from_coord(
+            lat=coord[0], long=coord[1], resolution=10, savedir=savedir
         )
+
+        write_json(os.path.join(DATA_DIR, coords_json_name), coords)
+
+        img_paths = glob.glob(f"{savedir}/*.npy")
+        for img_path in img_paths:
+            img = convert_sat_np_for_vis(img_path)
+            png_path = img_path.replace(".npy", ".png")
+            cv2.imwrite(png_path, img)
+
+            # TODO: refactor to utils method
+            tile_coord = coords[png_path]
+            converted_coord = [
+                [tile_coord["lat"][0], tile_coord["long"][0]],
+                [tile_coord["lat"][1], tile_coord["long"][1]],
+            ]
+
+            cur_children.append(
+                dl.ImageOverlay(
+                    id="shown-image", opacity=1, url=png_path, bounds=converted_coord
+                ),
+            )
+    else:
+        coords = load_json(os.path.join(DATA_DIR, coords_json_name))
+        for key, tile_coord in coords.items():
+            # tile_coord = coords[key]
+            converted_coord = [
+                [tile_coord["lat"][0], tile_coord["long"][0]],
+                [tile_coord["lat"][1], tile_coord["long"][1]],
+            ]
+            cur_children.append(
+                dl.ImageOverlay(
+                    id="shown-image", opacity=1, url=key, bounds=converted_coord
+                ),
+            )
 
     return [cur_children]
 
