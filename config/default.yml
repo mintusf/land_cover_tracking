@@ -1,0 +1,3 @@
+DATA_DIR: "app_data"
+POLYGON_JSON_NAME: "polygons.json"
+RESOLUTION: 10

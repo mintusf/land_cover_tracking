@@ -11,6 +11,7 @@ import os
 import cv2
 from shutil import rmtree
 
+from config.default import get_cfg_from_file
 from utils.dash_utils import get_coord_from_feature
 from utils.sentinel_api import get_raster_from_coord
 from utils.io_utils import (
@@ -22,7 +23,7 @@ from utils.io_utils import (
 
 server = Flask(__name__)
 app = Dash(server=server)
-
+config = get_cfg_from_file("config/default.yml")
 
 app.layout = html.Div(
     [
@@ -77,8 +78,9 @@ app.layout = html.Div(
     ]
 )
 
-DATA_DIR = "app_data"
-coords_json_name = "coords.json"
+DATA_DIR = config.DATA_DIR
+POLYGON_JSON_NAME = config.POLYGON_JSON_NAME
+RESOLUTION = config.RESOLUTION
 rmtree(DATA_DIR, ignore_errors=True)
 
 
@@ -159,10 +161,10 @@ def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons)
         foldername = get_next_folder_name(DATA_DIR)
         savedir = os.path.join(DATA_DIR, foldername)
         coords = get_raster_from_coord(
-            lat=coord[0], long=coord[1], resolution=10, savedir=savedir
+            lat=coord[0], long=coord[1], resolution=RESOLUTION, savedir=savedir
         )
 
-        write_json(os.path.join(DATA_DIR, coords_json_name), coords)
+        write_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME), coords)
 
         img_paths = glob.glob(f"{savedir}/*.npy")
         for img_path in img_paths:
@@ -183,7 +185,7 @@ def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons)
                 ),
             )
     else:
-        coords = load_json(os.path.join(DATA_DIR, coords_json_name))
+        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
         for key, tile_coord in coords.items():
             # tile_coord = coords[key]
             converted_coord = [
