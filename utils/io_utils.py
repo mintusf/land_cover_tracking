@@ -1,6 +1,8 @@
 import cv2
+import os
 from typing import Tuple, Union
 import numpy as np
+import json
 
 # TODO: remove these hardcodings after adding submodule with model
 channels_stats = {
@@ -87,3 +89,34 @@ def convert_sat_np_for_vis(
     img = (img + 2) * 255 / 4
     img = img.astype(np.uint8)
     return img
+
+
+import glob
+
+
+def get_next_folder_name(dir: str) -> str:
+    """Get a string of integer of the next folder in directory"""
+    files = glob.glob(dir + "/*/")
+    if len(files) == 0:
+        return "0"
+    else:
+        all_folders_ids = [int(os.path.split(os.path.split(f)[0])[-1]) for f in files]
+        return str(max(all_folders_ids) + 1)
+
+
+def load_json(path):
+    if not os.path.isfile(path):
+        return {}
+    with open(path, "r") as f:
+        return json.load(f)
+
+
+def write_json(path, new_dict):
+    if os.path.isfile(path):
+        old_dict = load_json(path)
+        old_dict.update(new_dict)
+        with open(path, "w") as f:
+            json.dump(old_dict, f)
+    else:
+        with open(path, "w") as f:
+            json.dump(new_dict, f)

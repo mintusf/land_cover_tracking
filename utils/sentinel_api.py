@@ -197,12 +197,13 @@ def get_raster_from_coord(
     for i, tile in enumerate(tiles):
         img = download_raster(tile, resolution=resolution)
         filename = f"tile_{i}"
-        np.save(os.path.join(savedir, filename), img)
+        filepath = os.path.join(savedir, filename)
+        np.save(filepath, img)
         tile_bounds = tile.geometry.bounds
         tile_coord = {
             "lat": [tile_bounds[1], tile_bounds[3]],
             "long": [tile_bounds[0], tile_bounds[2]],
         }
-        coords[filename] = tile_coord
+        coords[filepath + ".png"] = tile_coord
 
     return coords

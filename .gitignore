@@ -7,7 +7,7 @@ docker/setup.bs
 *.png
 setup.bs
 
-temp/
+app_data/
 
 sentinelhub_config.json
 /dash_temp
