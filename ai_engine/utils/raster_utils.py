@@ -5,25 +5,8 @@ import cv2
 import numpy as np
 import rasterio as rio
 from rasterio import mask
-from rasterio.io import DatasetReader
 from shapely.geometry import Polygon
 import torch
-
-
-def get_coord_from_raster(raster: DatasetReader) -> List[float]:
-    """Gets coordintes from raster
-
-    Args:
-        raster (DatasetReader): Rasterio dataset reader
-
-    Returns:
-        List[float]: Coordinates x0, y0, x1, y1
-    """
-    print(type(raster))
-    (x0, y0) = raster.xy(0, 0)
-    (x1, y1) = raster.xy(raster.height, raster.width)
-
-    return [x0, y0, x1, y1]
 
 
 def raster_to_np(
@@ -70,27 +53,6 @@ def convert_np_for_vis(
     return img
 
 
-def convert_raster_for_vis(
-    raster_path: str,
-    bands_rgb: Tuple[int] = [3, 2, 1],
-) -> np.array:
-    """Given path to raster and RGB bands, converts and returns saveable image.
-
-    Args:
-        raster_path (str): Path to the raster
-        bands_rgb (Tuple[int], optional): Indication of RGB bands.
-                                          Defaults to [3, 2, 1].
-
-    Returns:
-        np.array: Image converted to np.array saveable with open-cv
-    """
-    img = raster_to_np(raster_path, bands_rgb)
-
-    img = convert_np_for_vis(img)
-
-    return img
-
-
 def transpose_to_channels_first(np_arrray: np.array) -> np.array:
     """Transpose np.array to open-cv format"""
     if np_arrray.ndim == 3:
@@ -107,48 +69,6 @@ def np_to_torch(img_np: np.array, dtype=torch.float) -> torch.Tensor:
     img_tensor = img_tensor.type(dtype)
 
     return img_tensor
-
-
-def raster_to_tensor(
-    raster_path: str,
-    bands: Union[Tuple[int], None] = None,
-) -> torch.Tensor:
-    """Convert img raster to torch.Tensor. Raster can have any number of bands.
-    Args:
-        raster_path (str): Path to the raster
-        bands (Union[Tuple[int], None]): If given, includes bands to be extract.
-                                         If None, all bands are extracted.
-    Returns:
-        torch.Tensor: Raster converted into tensor of shape (n_bands, height, width)
-    """
-    img_np = raster_to_np(raster_path, bands, dtype=np.float32)
-    img_tensor = np_to_torch(img_np)
-
-    return img_tensor
-
-
-def get_stats(file: str, channels_count: int) -> Tuple[np.array]:
-    """Gets raster's mean and std for each channel.
-
-    Args:
-        file (str): Path to the raster
-        channels_count (int): Target number of channels in the raster
-                              If actual number is smaller, stats set to np.nan
-
-    Returns:
-        Tuple[np.array]: (mean, std)
-    """
-    img_np = raster_to_np(file)
-    image_stds = np.std(img_np, axis=(1, 2))
-    image_means = np.mean(img_np, axis=(1, 2))
-
-    # Pad to channels_count
-    if image_means.shape[0]:
-        pad = np.empty(channels_count - image_stds.shape[0])
-        pad.fill(np.nan)
-        image_stds = np.concatenate([image_stds, pad])
-        image_means = np.concatenate([image_means, pad])
-    return image_means, image_stds
 
 
 def np_to_raster(img_np: np.array, ref_img: str, savepath: str):

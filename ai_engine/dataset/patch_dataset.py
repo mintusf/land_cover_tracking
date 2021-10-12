@@ -2,14 +2,11 @@ import os
 from typing import Dict
 
 import torch
-from torch import tensor
 from torch.utils.data import Dataset
 from yacs.config import CfgNode
 
-from ai_engine.dataset.dataset_utils import build_mask
 from ai_engine.utils.io_utils import get_lines_from_txt, load_yaml
 from ai_engine.utils.raster_utils import raster_to_np, np_to_torch
-from ai_engine.utils.utilities import get_raster_filepath
 
 
 class PatchDataset(Dataset):

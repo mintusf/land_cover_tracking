@@ -13,7 +13,7 @@ from ai_engine.utils.visualization_utils import (
     generate_save_raster,
     generate_save_raw_raster,
 )
-from ai_engine.utils.utilities import split_sample_name, get_raster_filepath
+from ai_engine.utils.utilities import split_sample_name
 
 
 def get_save_path(
@@ -80,13 +80,12 @@ def generate_outputs(
 
     ref_raster_path = name
 
-
     for output_type in output_types:
         assert output_type in [
             "alphablend",
             "alphablended_raster",
             "raster",
-            "raw_raster"
+            "raw_raster",
         ], f"Output type {output_type} not supported"
         output_path = get_path_for_output(output_type, destination, name, dataloader)
 

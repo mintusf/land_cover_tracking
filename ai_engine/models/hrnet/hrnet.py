@@ -24,6 +24,7 @@ from ai_engine.models.hrnet.utils import BatchNorm2d, BatchNorm2d_class, relu_in
 BN_MOMENTUM = 0.1
 ALIGN_CORNERS = None
 
+
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
     return nn.Conv2d(

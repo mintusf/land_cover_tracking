@@ -3,14 +3,11 @@ import os
 
 from ai_engine.models import get_model
 from ai_engine.dataset import get_dataloader
-from config.default import get_cfg_from_file
 from ai_engine.train_utils import load_checkpoint
-from ai_engine.utils.utilities import get_gpu_count
 from ai_engine.models.models_utils import (
     rename_ordered_dict_from_parallel,
     rename_ordered_dict_to_parallel,
 )
-from ai_engine.utils.io_utils import get_lines_from_txt
 from ai_engine.utils.infer_utils import prepare_raster_for_inference
 from ai_engine.infer import infer
 
