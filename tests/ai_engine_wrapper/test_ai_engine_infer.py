@@ -9,7 +9,25 @@ from ai_engine_wrapper.ai_engine_wrapper import ai_engine_infer
 import rasterio as rio
 
 def build_dummy_infer_raster(model_cfg, savepath):
+    # Save raster
+    band = np.arange(256).reshape(16, 16).astype(np.uint8)
 
+    bands_count = len(model_cfg.DATASET.USED_CHANNELS)
+    img = np.concatenate(3 * [np.expand_dims(band, axis=0)], axis=0)
+    affine = rio.transform.from_bounds(-10, -10, 10, 10, img.shape[1], img.shape[2])
+    with rio.open(
+        input_path,
+        "w",
+        driver="GTiff",
+        dtype=img.dtype,
+        height=img.shape[1],
+        width=img.shape[2],
+        count=img.shape[0],
+        crs="EPSG:2443",
+        transform=affine,
+    ) as dst:
+
+        dst.write(img)
 
 def test_infer():
 
