@@ -30,11 +30,11 @@ _C.DATASET.INPUT.CHANNELS = [
 ]
 _C.DATASET.INPUT.USED_CHANNELS = [3, 2, 1]
 _C.DATASET.INPUT.STATS_FILE = os.path.join(
-    "ai_engine","config", "dataset", "stats", "channels_stats.json"
+    "ai_engine", "config", "dataset", "stats", "channels_stats.json"
 )
 _C.DATASET.MASK = CfgNode()
 _C.DATASET.MASK.CONFIG = os.path.join(
-    "ai_engine","config", "dataset", "mask_configs", "default.yml"
+    "ai_engine", "config", "dataset", "mask_configs", "default.yml"
 )
 _C.DATASET.SHAPE = [256, 256]
 

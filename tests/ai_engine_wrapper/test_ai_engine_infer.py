@@ -9,6 +9,7 @@ from ai_engine_wrapper.ai_engine_wrapper import ai_engine_infer
 import numpy as np
 import rasterio as rio
 
+
 def build_dummy_infer_raster(model_cfg, savepath):
     # Save raster
     input_size = model_cfg.DATASET.SHAPE
@@ -56,7 +57,7 @@ def test_infer():
 
     os.remove(checkpoint_save_path)
     os.remove(tile_path)
-    os.remove(os.path.join("tests","ai_engine_wrapper","subgrids_list.txt"))
+    os.remove(os.path.join("tests", "ai_engine_wrapper", "subgrids_list.txt"))
     rmtree(infer_directory)
 
 
