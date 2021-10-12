@@ -4,8 +4,7 @@ from typing import Dict, Tuple
 import torch
 from yacs.config import CfgNode
 
-from utils.io_utils import load_json
-from utils.utilities import build_dataset_stats_json_from_cfg
+from ai_engine.utils.io_utils import load_json
 
 
 class NormalizeSample(object):
@@ -61,7 +60,7 @@ def get_transform(cfg: CfgNode) -> NormalizeSample:
     stats_file = cfg.DATASET.INPUT.STATS_FILE
 
     if not os.path.isfile(stats_file):
-        build_dataset_stats_json_from_cfg(cfg)
+        raise FileNotFoundError("Channels stats file doesn't exist")
     stats = load_json(stats_file)
     means = [stats["means"][channels[channel]] for channel in used_channels]
     stds = [stats["stds"][channels[channel]] for channel in used_channels]

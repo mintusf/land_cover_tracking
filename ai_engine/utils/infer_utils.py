@@ -6,14 +6,14 @@ from shutil import rmtree
 from torch import Tensor
 from torch.utils.data import DataLoader
 
-from utils.raster_utils import is_cropped, crop_raster
-from utils.visualization_utils import (
+from ai_engine.utils.raster_utils import is_cropped, crop_raster
+from ai_engine.utils.visualization_utils import (
     generate_save_alphablend,
     generate_save_alphablended_raster,
     generate_save_raster,
     generate_save_raw_raster,
 )
-from utils.utilities import split_sample_name, get_raster_filepath
+from ai_engine.utils.utilities import split_sample_name, get_raster_filepath
 
 
 def get_save_path(
@@ -78,14 +78,8 @@ def generate_outputs(
         dataloader (DataLoader): Dataloader for samples
     """
 
-    if os.path.isfile(name):
-        ref_raster_path = name
-    else:
-        ref_raster_path = get_raster_filepath(
-            dataloader.dataset.dataset_root,
-            name,
-            dataloader.dataset.input_sensor_name,
-        )
+    ref_raster_path = name
+
 
     for output_type in output_types:
         assert output_type in [

@@ -19,13 +19,10 @@ import torch.nn as nn
 import torch._utils
 import torch.nn.functional as F
 
-from models.hrnet.utils import BatchNorm2d, BatchNorm2d_class, relu_inplace
+from ai_engine.models.hrnet.utils import BatchNorm2d, BatchNorm2d_class, relu_inplace
 
 BN_MOMENTUM = 0.1
 ALIGN_CORNERS = None
-
-logger = logging.getLogger(__name__)
-
 
 def conv3x3(in_planes, out_planes, stride=1):
     """3x3 convolution with padding"""
@@ -143,21 +140,18 @@ class HighResolutionModule(nn.Module):
             error_msg = "NUM_BRANCHES({}) <> NUM_BLOCKS({})".format(
                 num_branches, len(num_blocks)
             )
-            logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_channels):
             error_msg = "NUM_BRANCHES({}) <> NUM_CHANNELS({})".format(
                 num_branches, len(num_channels)
             )
-            logger.error(error_msg)
             raise ValueError(error_msg)
 
         if num_branches != len(num_inchannels):
             error_msg = "NUM_BRANCHES({}) <> NUM_INCHANNELS({})".format(
                 num_branches, len(num_inchannels)
             )
-            logger.error(error_msg)
             raise ValueError(error_msg)
 
     def _make_one_branch(self, branch_index, block, num_blocks, num_channels, stride=1):
@@ -547,9 +541,7 @@ class HighResolutionNet(nn.Module):
 
     def init_weights(
         self,
-        pretrained="",
     ):
-        logger.info("=> init weights from normal distribution")
         for m in self.modules():
             if isinstance(m, nn.Conv2d):
                 nn.init.normal_(m.weight, std=0.001)
@@ -558,8 +550,8 @@ class HighResolutionNet(nn.Module):
                 nn.init.constant_(m.bias, 0)
 
 
-def get_hrnet(cfg, channels_in, classes_out, checkpoint_path):
+def get_hrnet(cfg, channels_in, classes_out):
     model = HighResolutionNet(cfg, channels_in, classes_out)
-    model.init_weights(checkpoint_path)
+    model.init_weights()
 
     return model

@@ -5,12 +5,13 @@ from torch.nn import Module
 from torch.nn.parallel import DataParallel
 
 from config.default import CfgNode
-from dataset.dataset_utils import get_channels_in_count, get_channels_out_count
-from models.deeplab import create_deeplab
-from models.hrnet.hrnet import get_hrnet
-from utils.io_utils import load_yaml
-
-logger = logging.getLogger("global")
+from ai_engine.dataset.dataset_utils import (
+    get_channels_in_count,
+    get_channels_out_count,
+)
+from ai_engine.models.deeplab import create_deeplab
+from ai_engine.models.hrnet.hrnet import get_hrnet
+from ai_engine.utils.io_utils import load_yaml
 
 
 def get_model(cfg: CfgNode, device: str) -> Module:
@@ -33,18 +34,9 @@ def get_model(cfg: CfgNode, device: str) -> Module:
         channels_in = get_channels_in_count(cfg)
         channels_out = get_channels_out_count(cfg)
         model_config = load_yaml(cfg.MODEL.CONFIG)
-        model = get_hrnet(
-            model_config, channels_in, channels_out, cfg.TRAIN.RESUME_CHECKPOINT
-        )
+        model = get_hrnet(model_config, channels_in, channels_out)
     else:
         raise NotImplementedError
-
-    s = "\nModel:\n"
-    s += f"Using model: {cfg.MODEL.TYPE}\n"
-    s += f"Input channels: {channels_in}\n"
-    s += f"Output classes: {channels_out}\n"
-    s += "\n\n"
-    logger.info(s)
 
     if "cuda" in device:
         if "all" in device:

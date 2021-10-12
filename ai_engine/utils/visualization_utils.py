@@ -3,22 +3,12 @@ from typing import Dict, Tuple, Union
 import cv2
 import numpy as np
 
-import torch
 from torch import Tensor
-from torchvision.transforms import Compose
 
-from config.default import CfgNode
-from dataset.dataset_utils import build_mask
-from dataset.transforms import get_transform
-from utils.io_utils import load_yaml
-from utils.raster_utils import (
-    raster_to_tensor,
-    raster_to_np,
+from ai_engine.utils.raster_utils import (
     convert_np_for_vis,
-    np_to_torch,
     np_to_raster,
 )
-from utils.utilities import get_raster_filepath
 
 
 def apply_single_mask(
@@ -172,43 +162,6 @@ def generate_save_raw_raster(
     input_img = prepare_tensors_for_vis(input_img, None)
     input_img = input_img.transpose(2, 0, 1)
     np_to_raster(input_img, ref_raster, raster_path)
-
-
-def vis_sample(sample_name: str, cfg: CfgNode, savepath: str) -> None:
-    """A method to visualize a sample
-
-    Args:
-        sample_name (str): Sample name
-        cfg (CfgNode): Config
-        savepath (str): Save path
-    """
-    # Parse config
-    dataset_root = cfg.DATASET.ROOT
-    mask_config = load_yaml(cfg.DATASET.MASK.CONFIG)
-    input_sensor_name = cfg.DATASET.INPUT.SENSOR
-    target_sensor_name = cfg.DATASET.MASK.SENSOR
-
-    # Get image
-    input_raster_path = get_raster_filepath(
-        dataset_root, sample_name, input_sensor_name
-    )
-    input_used_channels = cfg.DATASET.INPUT.USED_CHANNELS
-    input_tensor = raster_to_tensor(input_raster_path, bands=input_used_channels)
-
-    transform = get_transform(cfg)
-    transforms = Compose([transform])
-    input_img = transforms({"input": input_tensor})["input"]
-
-    # Get mask
-    target_raster_path = get_raster_filepath(
-        dataset_root, sample_name, target_sensor_name
-    )
-    target_np = raster_to_np(target_raster_path)
-    mask = build_mask(target_np, mask_config)
-    mask = np_to_torch(mask, dtype=torch.long)
-
-    # Create alphablend
-    generate_save_alphablend(input_img, mask, mask_config, savepath)
 
 
 def prepare_tensors_for_vis(
