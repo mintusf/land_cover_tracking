@@ -9,7 +9,7 @@ from ai_engine.models.models_utils import (
     rename_ordered_dict_to_parallel,
 )
 from ai_engine.utils.infer_utils import prepare_raster_for_inference
-from ai_engine.infer import infer
+from ai_engine.utils.infer_utils import infer
 
 
 def get_model_for_infer(model_cfg, app_cfg, checkpoint):

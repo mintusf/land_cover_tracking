@@ -5,6 +5,8 @@ from shutil import rmtree
 
 from torch import Tensor
 from torch.utils.data import DataLoader
+import torch
+from torch.nn import Module
 
 from ai_engine.utils.raster_utils import is_cropped, crop_raster
 from ai_engine.utils.visualization_utils import (
@@ -129,3 +131,46 @@ def prepare_raster_for_inference(input_raster: str, crop_size: List[int]):
         paths_to_infer.extend(glob.glob(f"{cropped_rasters_directory}/*.tif"))
 
     return paths_to_infer
+
+
+def infer(
+    model: Module,
+    dataloader: DataLoader,
+    output_types: List[str],
+    destination: str,
+):
+    """Evaluates test dataset and saves predictions if needed
+
+    Args:
+        model (Module): Model to use for inference
+        dataloader (DataLoader): Dataloader for inference
+        output_types (List[str]): List of output types.
+                                  Supported types:
+                                    * alphablend (img and predicted mask)
+        destination (str): Path to save results
+
+    Returns:
+        dict: Generates and saves predictions in desired format
+    """
+    with torch.no_grad():
+        model.eval()
+        mask_config = dataloader.dataset.mask_config
+        for batch in dataloader:
+            inputs, names = batch["input"], batch["name"]
+
+            # Forward propagation
+            outputs = model(inputs)["out"]
+
+            masks = torch.argmax(outputs, dim=1)
+
+            for input_img, mask, name in zip(inputs, masks, names):
+
+                generate_outputs(
+                    output_types,
+                    destination,
+                    input_img,
+                    mask,
+                    name,
+                    mask_config,
+                    dataloader,
+                )
