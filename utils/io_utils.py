@@ -54,13 +54,6 @@ channels = [
 ]
 
 
-def transpose_to_channels_first(np_arrray: np.array) -> np.array:
-    """Transpose np.array to open-cv format"""
-    if np_arrray.ndim == 3:
-        np_arrray = np.transpose(np_arrray, [1, 2, 0])
-    return np_arrray
-
-
 def convert_sat_np_for_vis(
     img_path: str,
     target_size: Union[None, Tuple[int]] = None,
