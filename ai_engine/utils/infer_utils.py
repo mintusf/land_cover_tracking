@@ -3,115 +3,27 @@ import os
 from typing import List
 from shutil import rmtree
 
-from torch import Tensor
 from torch.utils.data import DataLoader
 import torch
 from torch.nn import Module
 
-from ai_engine.utils.raster_utils import (
+from ai_engine.utils.np_utils import (
     is_npy_cropped,
     crop_npy,
 )
 from ai_engine.utils.visualization_utils import (
     generate_save_alphablend,
-    generate_save_alphablended_raster,
-    generate_save_raster,
-    generate_save_raw_raster,
 )
-from ai_engine.utils.utilities import split_sample_name
 
 
-def get_save_path(
-    name: str, destination: str, suffix: str, extention: str = "png"
-) -> str:
-    """Returns a path for an output sample.
-        Creates directory if doesn't exist
-
-    Args:
-        name (str): Sample name
-        destination (str): Root directory
-        suffix (str): Suffix for file
-    Returns:
-        str: Save path
-    """
-    roi_folder, area, _ = split_sample_name(name)
-    alphablend_folder = os.path.join(destination, roi_folder, area)
-    if not os.path.isdir(alphablend_folder):
-        os.makedirs(alphablend_folder)
-    alphablend_path = os.path.join(alphablend_folder, f"{name}_{suffix}.{extention}")
-
-    return alphablend_path
-
-
-def get_path_for_output(output_type, destination, name, dataloader):
+def get_path_for_output(output_type, destination, name):
     output_destination = os.path.join(destination, output_type)
     os.makedirs(output_destination, exist_ok=True)
     extension = "tif" if "raster" in output_type else "png"
-    if dataloader.dataset.mode == "infer":
-        name = os.path.splitext(os.path.split(name)[1])[0]
-        alphablend_path = os.path.join(output_destination, name + f".{extension}")
-    else:
-        alphablend_path = get_save_path(
-            name, output_destination, output_type, extension
-        )
+    name = os.path.splitext(os.path.split(name)[1])[0]
+    alphablend_path = os.path.join(output_destination, name + f".{extension}")
 
     return alphablend_path
-
-
-def generate_outputs(
-    output_types: List[str],
-    destination: str,
-    input_img: Tensor,
-    mask: Tensor,
-    name: str,
-    mask_config: dict,
-    dataloader: DataLoader,
-) -> None:
-    """Generates and saves output images in formats specified by `output_types`
-
-    Args:
-        output_types (List[str]): List of output types.
-                                  Currently supported:
-                                  * alphablended (png alphablend)
-                                  * alphablended_raster (tif alphablend)
-                                  * raster (tif mask)
-        destination (str): Root path to save outputs
-        input_img (Tensor): Input img tensor
-        mask (Tensor): Predicted mask tensor
-        name (str): Sample name
-        mask_config (dict): Mask config
-        dataloader (DataLoader): Dataloader for samples
-    """
-
-    ref_raster_path = name
-
-    for output_type in output_types:
-        assert output_type in [
-            "alphablend",
-            "alphablended_raster",
-            "raster",
-            "raw_raster",
-        ], f"Output type {output_type} not supported"
-        output_path = get_path_for_output(output_type, destination, name, dataloader)
-
-        if output_type == "alphablend":
-            generate_save_alphablend(input_img, mask, mask_config, output_path)
-        elif output_type == "alphablended_raster":
-            generate_save_alphablended_raster(
-                mask,
-                input_img,
-                mask_config,
-                ref_raster_path,
-                output_path,
-            )
-        elif output_type == "raw_raster":
-            generate_save_raw_raster(
-                input_img,
-                ref_raster_path,
-                output_path,
-            )
-        elif output_type == "raster":
-            generate_save_raster(mask, mask_config, ref_raster_path, output_path)
 
 
 def prepare_npy_for_inference(path: str, crop_size: List[int]):
@@ -139,7 +51,6 @@ def prepare_npy_for_inference(path: str, crop_size: List[int]):
 def infer(
     model: Module,
     dataloader: DataLoader,
-    output_types: List[str],
     destination: str,
 ):
     """Evaluates test dataset and saves predictions if needed
@@ -147,9 +58,6 @@ def infer(
     Args:
         model (Module): Model to use for inference
         dataloader (DataLoader): Dataloader for inference
-        output_types (List[str]): List of output types.
-                                  Supported types:
-                                    * alphablend (img and predicted mask)
         destination (str): Path to save results
 
     Returns:
@@ -168,12 +76,5 @@ def infer(
 
             for input_img, mask, name in zip(inputs, masks, names):
 
-                generate_outputs(
-                    output_types,
-                    destination,
-                    input_img,
-                    mask,
-                    name,
-                    mask_config,
-                    dataloader,
-                )
+                output_path = get_path_for_output("alphablend", destination, name)
+                generate_save_alphablend(input_img, mask, mask_config, output_path)

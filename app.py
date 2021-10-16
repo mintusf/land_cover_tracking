@@ -20,7 +20,7 @@ from utils.io_utils import (
     write_json,
     load_json,
 )
-from ai_engine_wrapper.ai_engine_wrapper import ai_engine_infer
+from utils.ai_engine_wrapper import ai_engine_infer
 
 server = Flask(__name__)
 app = Dash(server=server)

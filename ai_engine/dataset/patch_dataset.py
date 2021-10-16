@@ -7,7 +7,7 @@ from torch.utils.data import Dataset
 from yacs.config import CfgNode
 
 from ai_engine.utils.io_utils import get_lines_from_txt, load_yaml
-from ai_engine.utils.raster_utils import raster_to_np, np_to_torch
+from ai_engine.utils.np_utils import np_to_torch
 
 
 class PatchDataset(Dataset):
@@ -70,17 +70,9 @@ class PatchDataset(Dataset):
         # Get input numpy array
         input_raster_path = sample_name
 
-        ext = os.path.splitext(input_raster_path)[1]
-        if ext == ".tiff":
-            input_np = raster_to_np(input_raster_path, bands=self.input_used_channels)
-        elif ext == ".npy":
-            input_np = np.load(input_raster_path)
-            input_np = input_np[:, :, self.input_used_channels]
-            input_np = np.transpose(input_np, [2, 0, 1])
-        else:
-            raise NotImplementedError(
-                f"Extension {ext} is not supported as model's input"
-            )
+        input_np = np.load(input_raster_path)
+        input_np = input_np[:, :, self.input_used_channels]
+        input_np = np.transpose(input_np, [2, 0, 1])
 
         if "cuda" in self.device:
             if "all" in self.device:

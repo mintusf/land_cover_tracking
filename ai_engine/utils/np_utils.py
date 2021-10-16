@@ -1,33 +1,9 @@
-from typing import List, Tuple, Union
+from typing import List, Tuple
 import os
 
 import cv2
 import numpy as np
-import rasterio as rio
-from rasterio import mask
-from shapely.geometry import Polygon
 import torch
-
-
-def raster_to_np(
-    raster_path: str, bands: Tuple[int] = None, dtype=np.float32
-) -> np.array:
-    """Convert img raster to numpy array. Raster can have any number of bands.
-    Args:
-        raster_path (str): Path to WV .img file
-        bands (Tuple[int]): Tuple of bands to extract
-    Returns:
-        np.array: raster converted into np.array
-    """
-    with rio.open(raster_path) as src:
-        if bands is None:
-            bands = [src.read(band_idx + 1) for band_idx in range(src.count)]
-        else:
-            bands = [src.read(band_idx + 1) for band_idx in bands]
-
-    img_np = np.array(bands, dtype=dtype)
-
-    return img_np
 
 
 def convert_np_for_vis(
@@ -69,31 +45,6 @@ def np_to_torch(img_np: np.array, dtype=torch.float) -> torch.Tensor:
     img_tensor = img_tensor.type(dtype)
 
     return img_tensor
-
-
-def np_to_raster(img_np: np.array, ref_img: str, savepath: str):
-    """Convert np.array to raster and save
-    Args:
-        img_np (np.array): Image to be saved
-        ref_img (str): Referenced raster
-        savepath (str): Output raster savepath (tif format is recommended)
-    """
-    with rio.open(ref_img) as src:
-        transform = src.transform
-        size = (src.height, src.width)
-
-    with rio.open(
-        savepath,
-        "w",
-        driver="GTiff",
-        dtype=img_np.dtype,
-        height=size[0],
-        width=size[1],
-        count=3,
-        crs=src.crs,
-        transform=transform,
-    ) as dst:
-        dst.write(img_np)
 
 
 def is_npy_cropped(path: str, crop_size: List[int]):

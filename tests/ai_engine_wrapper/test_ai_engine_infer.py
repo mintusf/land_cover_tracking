@@ -4,7 +4,7 @@ from shutil import rmtree
 import torch
 from config.default import get_cfg_from_file
 from ai_engine.models import get_model
-from ai_engine_wrapper.ai_engine_wrapper import ai_engine_infer
+from utils.ai_engine_wrapper import ai_engine_infer
 
 import numpy as np
 import rasterio as rio

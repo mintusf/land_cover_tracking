@@ -50,6 +50,5 @@ def ai_engine_infer(app_cfg, tile_path, checkpoint, destination):
     infer(
         model,
         dataloader,
-        output_types=["alphablend"],
         destination=destination,
     )
