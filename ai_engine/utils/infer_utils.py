@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader
 import torch
 from torch.nn import Module
 
-from ai_engine.utils.raster_utils import is_cropped, crop_raster
+from ai_engine.utils.raster_utils import is_cropped, crop_raster, is_npy_cropped, crop_npy
 from ai_engine.utils.visualization_utils import (
     generate_save_alphablend,
     generate_save_alphablended_raster,
@@ -132,6 +132,26 @@ def prepare_raster_for_inference(input_raster: str, crop_size: List[int]):
 
     return paths_to_infer
 
+def prepare_npy_for_inference(path: str, crop_size: List[int]):
+    paths_to_infer = []
+    raster_folder, raster_file = os.path.split(path)
+
+    if not is_npy_cropped(path, crop_size):
+        paths_to_infer.append(path)
+    else:
+
+        raster_name = os.path.splitext(raster_file)[0]
+        cropped_npy_directory = os.path.join(raster_folder, raster_name)
+
+        if os.path.isdir(cropped_npy_directory):
+            rmtree(cropped_npy_directory)
+        os.makedirs(cropped_npy_directory)
+
+        crop_npy(path, cropped_npy_directory, crop_size)
+
+        paths_to_infer.extend(glob.glob(f"{cropped_npy_directory}/*.npy"))
+
+    return paths_to_infer
 
 def infer(
     model: Module,
