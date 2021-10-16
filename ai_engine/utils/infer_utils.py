@@ -9,8 +9,6 @@ import torch
 from torch.nn import Module
 
 from ai_engine.utils.raster_utils import (
-    is_cropped,
-    crop_raster,
     is_npy_cropped,
     crop_npy,
 )
@@ -114,28 +112,6 @@ def generate_outputs(
             )
         elif output_type == "raster":
             generate_save_raster(mask, mask_config, ref_raster_path, output_path)
-
-
-def prepare_raster_for_inference(input_raster: str, crop_size: List[int]):
-    paths_to_infer = []
-    raster_folder, raster_file = os.path.split(input_raster)
-
-    if not is_cropped(input_raster, crop_size):
-        paths_to_infer.append(input_raster)
-    else:
-
-        raster_name = os.path.splitext(raster_file)[0]
-        cropped_rasters_directory = os.path.join(raster_folder, raster_name)
-
-        if os.path.isdir(cropped_rasters_directory):
-            rmtree(cropped_rasters_directory)
-        os.makedirs(cropped_rasters_directory)
-
-        crop_raster(input_raster, cropped_rasters_directory, crop_size)
-
-        paths_to_infer.extend(glob.glob(f"{cropped_rasters_directory}/*.tif"))
-
-    return paths_to_infer
 
 
 def prepare_npy_for_inference(path: str, crop_size: List[int]):
