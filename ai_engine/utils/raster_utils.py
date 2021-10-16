@@ -96,21 +96,22 @@ def np_to_raster(img_np: np.array, ref_img: str, savepath: str):
         dst.write(img_np)
 
 
-def is_cropped(input_raster: str, crop_size: List[int]):
-    with rio.open(input_raster) as src:
-        height, width = (src.height, src.width)
-        if height < crop_size[0] or width < crop_size[1]:
-            raise ValueError(
-                "Raster cannot have smaller size than crop size. "
-                + f"Raster's size is [{height}, {width}], crop size: {crop_size}"
-            )
-        if height > crop_size[0] or width > crop_size[1]:
-            return True
-        else:
-            return False
+def is_npy_cropped(path: str, crop_size: List[int]):
+
+    img = np.load(path)
+    height, width = (img.shape[0], img.shape[1])
+    if height < crop_size[0] or width < crop_size[1]:
+        raise ValueError(
+            "Raster cannot have smaller size than crop size. "
+            + f"Raster's size is [{height}, {width}], crop size: {crop_size}"
+        )
+    if height > crop_size[0] or width > crop_size[1]:
+        return True
+    else:
+        return False
 
 
-def crop_raster(input_raster: str, dest_dir: str, crop_size: List[int]):
+def crop_npy(path: str, dest_dir: str, crop_size: List[int]):
     """Crop raster into subgrids
     Args:
         input_img (str): Path to raster file
@@ -119,46 +120,24 @@ def crop_raster(input_raster: str, dest_dir: str, crop_size: List[int]):
     """
     files = []
 
-    with rio.open(input_raster) as src:
-        height, width = (src.height, src.width)
+    img = np.load(path)
+    height, width = (img.shape[0], img.shape[1])
 
-        lat_crop_num = height // crop_size[0]
-        long_crop_num = width // crop_size[1]
+    lat_crop_num = height // crop_size[0]
+    long_crop_num = width // crop_size[1]
 
-        for lat_idx in range(lat_crop_num):
-            for long_idx in range(long_crop_num):
+    for lat_idx in range(lat_crop_num):
+        for long_idx in range(long_crop_num):
 
-                x_min = lat_idx * crop_size[0]
-                y_min = long_idx * crop_size[1]
-                (west, north) = src.xy(x_min, y_min)
+            x_min = lat_idx * crop_size[0]
+            y_min = long_idx * crop_size[1]
 
-                x_max = (lat_idx + 1) * crop_size[0] - 1
-                y_max = (long_idx + 1) * crop_size[1] - 1
-                (east, south) = src.xy(x_max, y_max)
+            x_max = (lat_idx + 1) * crop_size[0]
+            y_max = (long_idx + 1) * crop_size[1]
 
-                polygon = Polygon(
-                    [(west, north), (east, north), (east, south), (west, south)]
-                )
+            img_cropped = img[x_min:x_max, y_min:y_max,:]
+            raster_name = os.path.splitext(os.path.split(path)[1])[0]
+            out_path = os.path.join(dest_dir, f"{raster_name}_{lat_idx}_{long_idx}.npy")
 
-                out_image, out_transform = mask.mask(
-                    src, [polygon], crop=True, all_touched=True
-                )
-                out_meta = src.meta
-
-                out_meta.update(
-                    {
-                        "driver": "GTiff",
-                        "height": out_image.shape[1],
-                        "width": out_image.shape[2],
-                        "transform": out_transform,
-                    }
-                )
-
-                raster_name = os.path.splitext(os.path.split(input_raster)[1])[0]
-                out_path = os.path.join(
-                    dest_dir, f"{raster_name}_{lat_idx}_{long_idx}.tif"
-                )
-
-                with rio.open(out_path, "w", **out_meta) as dest:
-                    dest.write(out_image)
-                files.append(out_path)
+            np.save(out_path, img_cropped)
+            files.append(out_path)
