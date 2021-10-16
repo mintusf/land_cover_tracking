@@ -1,6 +1,5 @@
 from dash import Dash, callback_context
 from dash.dependencies import Output, Input, State
-from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
@@ -8,19 +7,21 @@ from flask import Flask, send_from_directory
 import glob
 
 import os
-import cv2
 from shutil import rmtree
 
 from config.default import get_cfg_from_file
-from utils.dash_utils import get_coord_from_feature
-from utils.sentinel_api import get_raster_from_coord
+from utils.dash_utils import (
+    get_coord_from_feature,
+    predict_action,
+    download_action,
+    get_polygon_coord,
+    refresh_action,
+)
+
 from utils.io_utils import (
-    convert_sat_np_for_vis,
     get_next_folder_name,
-    write_json,
     load_json,
 )
-from utils.ai_engine_wrapper import ai_engine_infer
 
 server = Flask(__name__)
 app = Dash(server=server)
@@ -181,19 +182,6 @@ def add_marker_pred(selected_polygon, polygons):
         return [top_right_coord]
 
 
-def get_polygon_coord(polygons, selected_polygon):
-    return [
-        [
-            polygons["features"][selected_polygon]["properties"]["_bounds"][0]["lat"],
-            polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lat"],
-        ],
-        [
-            polygons["features"][selected_polygon]["properties"]["_bounds"][0]["lng"],
-            polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lng"],
-        ],
-    ]
-
-
 @app.callback(
     [Output("marker", "position")],
     [Input("polygon-dropdown", "value"), State("edit_control", "geojson")],
@@ -206,25 +194,6 @@ def add_marker(selected_polygon, polygons):
         coord = get_polygon_coord(polygons, int(selected_polygon))
         bottom_left_coord = [coord[0][0], coord[1][0]]
         return [bottom_left_coord]
-
-
-import numpy as np
-
-
-def merge_preds(polygon_id, tile_name, savedir):
-    whole_img = cv2.imread(os.path.join(DATA_DIR, str(polygon_id), f"{tile_name}.png"))
-    for pred_path in glob.glob(
-        os.path.join(DATA_DIR, str(polygon_id), f"{tile_name}", "alphablend", "*.png")
-    ):
-        parts = os.path.splitext(os.path.split(pred_path)[1])[0].split("_")
-        x_idx = int(parts[2])
-        y_idx = int(parts[3])
-        subgrid = cv2.imread(pred_path)
-        whole_img[
-            x_idx * 256 : (x_idx + 1) * 256, y_idx * 256 : (y_idx + 1) * 256, :
-        ] = subgrid
-
-    cv2.imwrite(savedir, whole_img)
 
 
 @app.callback(
@@ -249,78 +218,23 @@ def update_map(
 
     ctx = callback_context.triggered
     if ctx[0]["prop_id"] == "download_raster.n_clicks":
-        coord = get_polygon_coord(polygons, int(selected_polygon_download))
 
-        foldername = get_next_folder_name(DATA_DIR)
-        savedir = os.path.join(DATA_DIR, foldername)
-        coords = get_raster_from_coord(
-            lat=coord[0], long=coord[1], resolution=RESOLUTION, savedir=savedir
-        )
+        paths, coords = download_action(polygons, selected_polygon_download, config)
+        layer_name = "image"
 
-        write_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME), coords)
-
-        img_paths = glob.glob(f"{savedir}/*.npy")
-        for img_path in img_paths:
-            img = convert_sat_np_for_vis(img_path)
-            png_path = img_path.replace(".npy", ".png")
-            cv2.imwrite(png_path, img)
-
-            # TODO: refactor to utils method
-            tile_coord = coords[png_path]
-            converted_coord = [
-                [tile_coord["lat"][0], tile_coord["long"][0]],
-                [tile_coord["lat"][1], tile_coord["long"][1]],
-            ]
-
-            cur_children.append(
-                dl.ImageOverlay(
-                    id="image", opacity=1, url=png_path, bounds=converted_coord
-                ),
-            )
     if ctx[0]["prop_id"] == "pred_button.n_clicks":
-        for input_file in glob.glob(
-            os.path.join(DATA_DIR, selected_polygon_pred, "*.npy")
-        ):
-            tile_name = os.path.splitext(os.path.split(input_file)[1])[0]
-            ai_engine_infer(
-                config,
-                tile_path=input_file,
-                checkpoint=config.INFER.WEIGHTS_PATH,
-                destination=os.path.join(DATA_DIR, selected_polygon_pred, tile_name),
-            )
 
-            savedir = os.path.join(
-                DATA_DIR, selected_polygon_pred, f"{tile_name}_pred.png"
-            )
-            merge_preds(selected_polygon_pred, tile_name, savedir=savedir)
-            coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-            tile_coord = coords[input_file.replace("npy", "png")]
-            converted_coord = [
-                [tile_coord["lat"][0], tile_coord["long"][0]],
-                [tile_coord["lat"][1], tile_coord["long"][1]],
-            ]
-            cur_children.append(
-                dl.ImageOverlay(
-                    id="mask", opacity=1, url=savedir, bounds=converted_coord
-                ),
-            )
+        paths, coords = predict_action(config, selected_polygon_pred)
+        layer_name = "mask"
 
     else:
-        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-        for key, tile_coord in coords.items():
-            # tile_coord = coords[key]
-            pred_path = key.replace(".png", "_pred.png")
-            if os.path.isfile(pred_path):
-                url = pred_path
-            else:
-                url = key
-            converted_coord = [
-                [tile_coord["lat"][0], tile_coord["long"][0]],
-                [tile_coord["lat"][1], tile_coord["long"][1]],
-            ]
-            cur_children.append(
-                dl.ImageOverlay(id="mask", opacity=1, url=url, bounds=converted_coord),
-            )
+        paths, coords = refresh_action(config)
+        layer_name = "loaded"
+
+    for path, coord in zip(paths, coords):
+        cur_children.append(
+            dl.ImageOverlay(id=layer_name, opacity=1, url=path, bounds=coord),
+        )
 
     return [cur_children]
 
