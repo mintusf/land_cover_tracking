@@ -30,7 +30,11 @@ _C.DATASET.INPUT.CHANNELS = [
 ]
 _C.DATASET.INPUT.USED_CHANNELS = [1, 2, 3]
 _C.DATASET.INPUT.STATS_FILE = os.path.join(
-    "ai_engine", "config", "dataset", "stats", "channels_stats_less_classes_more_snow.json"
+    "ai_engine",
+    "config",
+    "dataset",
+    "stats",
+    "channels_stats_less_classes_more_snow.json",
 )
 _C.DATASET.MASK = CfgNode()
 _C.DATASET.MASK.CONFIG = os.path.join(
@@ -43,7 +47,9 @@ _C.INFER.DEVICE = "cpu"
 _C.INFER.WORKERS = 0
 _C.INFER.BATCH_SIZE_PER_DEVICE = 1
 _C.INFER.SEED = 42
-_C.INFER.WEIGHTS_PATH = "weights/cfg_weighted_loss_more_snow_data_aug_hrnet_3bands_resume_best_f1.pth"
+_C.INFER.WEIGHTS_PATH = (
+    "weights/cfg_weighted_loss_more_snow_data_aug_hrnet_3bands_resume_best_f1.pth"
+)
 
 
 def get_cfg_defaults():

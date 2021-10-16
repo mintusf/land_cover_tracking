@@ -75,10 +75,12 @@ class PatchDataset(Dataset):
             input_np = raster_to_np(input_raster_path, bands=self.input_used_channels)
         elif ext == ".npy":
             input_np = np.load(input_raster_path)
-            input_np = input_np[:,:,self.input_used_channels]
-            input_np = np.transpose(input_np, [2,0,1])
+            input_np = input_np[:, :, self.input_used_channels]
+            input_np = np.transpose(input_np, [2, 0, 1])
         else:
-            raise NotImplementedError(f"Extension {ext} is not supported as model's input")
+            raise NotImplementedError(
+                f"Extension {ext} is not supported as model's input"
+            )
 
         if "cuda" in self.device:
             if "all" in self.device:

@@ -309,7 +309,7 @@ def update_map(
         coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
         for key, tile_coord in coords.items():
             # tile_coord = coords[key]
-            pred_path = key.replace(".png","_pred.png")
+            pred_path = key.replace(".png", "_pred.png")
             if os.path.isfile(pred_path):
                 url = pred_path
             else:

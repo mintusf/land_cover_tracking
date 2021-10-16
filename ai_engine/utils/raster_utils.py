@@ -135,7 +135,7 @@ def crop_npy(path: str, dest_dir: str, crop_size: List[int]):
             x_max = (lat_idx + 1) * crop_size[0]
             y_max = (long_idx + 1) * crop_size[1]
 
-            img_cropped = img[x_min:x_max, y_min:y_max,:]
+            img_cropped = img[x_min:x_max, y_min:y_max, :]
             raster_name = os.path.splitext(os.path.split(path)[1])[0]
             out_path = os.path.join(dest_dir, f"{raster_name}_{lat_idx}_{long_idx}.npy")
 
