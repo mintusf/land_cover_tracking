@@ -50,22 +50,9 @@ def create_alphablend(
         np.array: Alphablend image
     """
 
-    x_pos = 30
-    y_pox = 30
     for class_int, color in colors_dict.items():
         class_mask = np.where(mask == class_int, 1, 0)
         img = apply_single_mask(img, class_mask, color, alpha)
-        if class_mask.sum() > 100 and class2label is not None:
-            cv2.putText(
-                img,
-                class2label[class_int],
-                (x_pos, y_pox),
-                cv2.FONT_HERSHEY_SIMPLEX,
-                0.5,
-                color,
-                1,
-            )
-            y_pox += 30
 
     return img
 
