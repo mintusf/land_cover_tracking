@@ -32,74 +32,99 @@ app.layout = html.Div(
         html.H1(
             id="title",
             children="Land Cover Tracking",
-            style={"textAlign": "center", "fontSize": 40},
+            style={
+                "textAlign": "center",
+                "fontSize": 40,
+                "margin-top": "0vw",
+                "margin-bottom": "0vw",
+            },
         ),
         # Setup a map with the edit control.
-        dl.Map(
-            center=[56, 10],
-            zoom=4,
-            bounds=[[50, 20], [50.5, 20.5]],
+        html.Div(
             children=[
-                dl.TileLayer(),
-                dl.Marker(
-                    position=[0, 0],
-                    id="marker",
+                dl.Map(
+                    center=[56, 10],
+                    zoom=4,
+                    bounds=[[50, 20], [50.5, 20.5]],
+                    children=[
+                        dl.TileLayer(),
+                        dl.Marker(
+                            position=[0, 0],
+                            id="marker",
+                        ),
+                        dl.Marker(
+                            position=[0, 0],
+                            id="marker_pred",
+                        ),
+                        dl.FeatureGroup([dl.EditControl(id="edit_control")]),
+                    ],
+                    style={
+                        "width": "70%",
+                        "height": "91vh",
+                        "margin": "auto",
+                        "display": "inline-block",
+                        "position": "relative",
+                    },
+                    id="map",
                 ),
-                dl.Marker(
-                    position=[0, 0],
-                    id="marker_pred",
+                html.Div(
+                    children=[
+                        html.Button(
+                            id="download_raster",
+                            children=html.H2(
+                                "Download raster",
+                                style={"textAlign": "center", "fontSize": 25},
+                            ),
+                            style={
+                                "display": "inline-block",
+                                "textalign": "center",
+                                "width": "50vh",
+                                "margin-top": "5vh",
+                            },
+                        ),
+                        dcc.Dropdown(
+                            id="polygon-dropdown",
+                            placeholder="Please choose the polygon",
+                            value="None",
+                            style={
+                                "width": "50vh",
+                                "height": "4vh",
+                                "fontSize": 20,
+                            },
+                        ),
+                        html.Button(
+                            id="pred_button",
+                            children=html.H2(
+                                "Predict !",
+                                style={"textAlign": "center", "fontSize": 25},
+                            ),
+                            style={
+                                "display": "inline-block",
+                                "textalign": "center",
+                                "width": "50vh",
+                                "margin-top": "5vh",
+                            },
+                        ),
+                        dcc.Dropdown(
+                            id="polygon-pred-dropdown",
+                            placeholder="Please choose the polygon",
+                            value="None",
+                            style={
+                                "width": "100%",
+                                "height": "4vh",
+                                "fontSize": 20,
+                            },
+                        ),
+                    ],
+                    style={
+                        "display": "inline-block",
+                        "margin-left": "3vw",
+                        "position": "absolute",
+                        "height": 200,
+                    },
                 ),
-                dl.FeatureGroup([dl.EditControl(id="edit_control")]),
             ],
-            style={
-                "width": "100%",
-                "height": "70vh",
-                "margin": "auto",
-                "display": "block",
-                "position": "relative",
-            },
-            id="map",
-        ),
-        html.Button(
-            id="download_raster",
-            children=html.H2(
-                "Download raster", style={"textAlign": "center", "fontSize": 30}
-            ),
-            style={
-                "display": "inline-block",
-                "textalign": "center",
-            },
-        ),
-        dcc.Dropdown(
-            id="polygon-dropdown",
-            placeholder="Please choose the polygon",
-            value="None",
-            style={
-                "width": "80%",
-                "height": "4vh",
-                "fontSize": 30,
-            },
-        ),
-        html.Button(
-            id="pred_button",
-            children=html.H2(
-                "Predict !", style={"textAlign": "center", "fontSize": 30}
-            ),
-            style={
-                "display": "inline-block",
-                "textalign": "center",
-            },
-        ),
-        dcc.Dropdown(
-            id="polygon-pred-dropdown",
-            placeholder="Please choose the polygon",
-            value="None",
-            style={
-                "width": "80%",
-                "height": "4vh",
-                "fontSize": 30,
-                "display": "inline-block",
-            },
+            style={"backgroundColor": "grey"},
         ),
     ]
 )
@@ -133,7 +158,7 @@ def mirror(x):
                 coord = get_coord_from_feature(feature)
                 choices.append(
                     {
-                        "label": f"{rect_idx}: Bottom left coordinates: {coord}",
+                        "label": f"{rect_idx}: Bottom left coord: {coord}",
                         "value": f"{feat_idx}",
                     }
                 )
@@ -156,10 +181,10 @@ def update_list_for_prediction(x):
         for option in range(int(foldername)):
             coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
             coord = coords[os.path.join(DATA_DIR, str(option), "tile_0.png")]
-            coord_str = f"lat {coord['lat'][0]}, long {coord['long'][0]}"
+            coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
             choices.append(
                 {
-                    "label": f"{option}: Bottom left coordinates: {coord_str}",
+                    "label": f"{option}: Top left coord: {coord_str}",
                     "value": f"{option}",
                 }
             )
