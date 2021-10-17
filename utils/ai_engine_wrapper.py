@@ -8,7 +8,7 @@ from ai_engine.models.models_utils import (
     rename_ordered_dict_from_parallel,
     rename_ordered_dict_to_parallel,
 )
-from ai_engine.utils.infer_utils import prepare_raster_for_inference
+from ai_engine.utils.infer_utils import prepare_npy_for_inference
 from ai_engine.utils.infer_utils import infer
 
 
@@ -33,7 +33,7 @@ def ai_engine_infer(app_cfg, tile_path, checkpoint, destination):
     model = get_model_for_infer(app_cfg, app_cfg, checkpoint)
 
     samples_to_infer = []
-    cropped_samples_paths = prepare_raster_for_inference(
+    cropped_samples_paths = prepare_npy_for_inference(
         tile_path, crop_size=app_cfg.DATASET.SHAPE
     )
     samples_to_infer.extend(cropped_samples_paths)
@@ -50,6 +50,5 @@ def ai_engine_infer(app_cfg, tile_path, checkpoint, destination):
     infer(
         model,
         dataloader,
-        output_types=["alphablended_raster"],
         destination=destination,
     )
