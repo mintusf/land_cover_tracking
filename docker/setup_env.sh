@@ -1,10 +1,10 @@
 # install requirements
-sudo apt-get update -y \
+apt-get update -y \
   && sudo apt-get install -y --no-install-recommends \
     sudo \
     bzip2 \
     git \
-    python3\
+    python3.8\
     python3-dev \
     python3-pip \
     python3-wheel \
@@ -19,4 +19,5 @@ sudo apt-get update -y \
 apt-get install ffmpeg libsm6 libxext6  -y
 
 # Create pipenv environment
-sudo pip install -r ./docker/requirements.txt
+alias python=python3.8
+python -m pip install -r ./docker/requirements.txt
