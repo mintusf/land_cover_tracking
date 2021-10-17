@@ -16,6 +16,8 @@ from sentinelhub import (
     MimeType,
 )
 
+from config.default import CfgNode
+
 
 def get_sentinelhub_config(config_file: str) -> SHConfig:
     """Loads sentinel hub config from file and returns it"""
@@ -131,7 +133,14 @@ def get_eval_script(bands: List[str]) -> str:
     return evalscript
 
 
-def download_raster(tile_coord: Tuple[float], resolution: float) -> np.array:
+def get_used_bands_list(config: CfgNode) -> List[str]:
+    """Returns list of bands required for the model"""
+    all_bands = config.DATASET.INPUT.CHANNELS
+    max_band = max(config.DATASET.INPUT.USED_CHANNELS)
+    return all_bands[: max_band + 1]
+
+
+def download_raster(tile_coord: Tuple[float], config: CfgNode) -> np.array:
     """Given tile coordinates and resolution, downloads the tile using sentinelhub API
 
     Args:
@@ -142,30 +151,26 @@ def download_raster(tile_coord: Tuple[float], resolution: float) -> np.array:
         np.array: The downloaded tile with shape (h, w, bands)
     """
 
-    # TODO: get from model config
-    eval_script = get_eval_script(
-        [
-            "B01",
-            "B02",
-            "B03",
-            "B04",
-        ]
-    )
+    used_bands = get_used_bands_list(config)
+    eval_script = get_eval_script(used_bands)
 
-    config = get_sentinelhub_config("sentinelhub_config.json")
-    # TODO: Load dates from config
+    config = get_sentinelhub_config(config.SENTINEL_HUB_CONFIG)
+
     request_all_bands = SentinelHubRequest(
         evalscript=eval_script,
         input_data=[
             SentinelHubRequest.input_data(
                 data_collection=DataCollection.SENTINEL2_L1C,
-                time_interval=("2020-08-01", "2020-09-30"),
+                time_interval=(
+                    config.SENTINEL_HUB.START_DATE,
+                    config.SENTINEL_HUB.END_DATE,
+                ),
                 mosaicking_order="leastCC",
             )
         ],
         responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
         bbox=tile_coord,
-        size=bbox_to_dimensions(tile_coord, resolution=resolution),
+        size=bbox_to_dimensions(tile_coord, config.SENTINEL_HUB.RESOLUTION),
         config=config,
     )
 
@@ -174,7 +179,7 @@ def download_raster(tile_coord: Tuple[float], resolution: float) -> np.array:
 
 
 def get_raster_from_coord(
-    lat: Tuple[float], long: Tuple[float], resolution: float, savedir: str
+    lat: Tuple[float], long: Tuple[float], config: CfgNode, savedir: str
 ) -> Dict[str, Tuple[float]]:
     """Given lattitude, longitude of a polygon and resolution of target tiles,
         divides polygon into tiles, downloads them and save on disk
@@ -189,13 +194,13 @@ def get_raster_from_coord(
         Dict[str, Tuple[float]]: [description]
     """
     # Divide the lat and long into the appropriate number of tiles
-    tiles = get_tiles_coord(lat, long, resolution=resolution)
+    tiles = get_tiles_coord(lat, long, resolution=config.SENTINEL_HUB.RESOLUTION)
 
     # Get all rasters and save them
     os.makedirs(savedir, exist_ok=True)
     coords = {}
     for i, tile in enumerate(tiles):
-        img = download_raster(tile, resolution=resolution)
+        img = download_raster(tile, config)
         filename = f"tile_{i}"
         filepath = os.path.join(savedir, filename)
         np.save(filepath, img)

@@ -56,9 +56,7 @@ def download_action(
 
     foldername = get_next_folder_name(config.DATA_DIR)
     savedir = os.path.join(config.DATA_DIR, foldername)
-    coords = get_raster_from_coord(
-        lat=coord[0], long=coord[1], resolution=config.RESOLUTION, savedir=savedir
-    )
+    coords = get_raster_from_coord(coord[0], coord[1], config, savedir)
 
     write_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME), coords)
 

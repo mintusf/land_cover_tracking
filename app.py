@@ -131,7 +131,6 @@ app.layout = html.Div(
 
 DATA_DIR = config.DATA_DIR
 POLYGON_JSON_NAME = config.POLYGON_JSON_NAME
-RESOLUTION = config.RESOLUTION
 rmtree(DATA_DIR, ignore_errors=True)
 
 

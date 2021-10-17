@@ -5,7 +5,12 @@ _C = CfgNode()
 
 _C.DATA_DIR = "app_data"
 _C.POLYGON_JSON_NAME = "polygons.json"
-_C.RESOLUTION = 10
+
+_C.SENTINEL_HUB = CfgNode()
+_C.SENTINEL_HUB.RESOLUTION = 10
+_C.SENTINEL_HUB.CONFIG = "sentinelhub_config.json"
+_C.SENTINEL_HUB.START_DATE = "2020-08-01"
+_C.SENTINEL_HUB.START_DATE = "2020-09-30"
 
 _C.MODEL = CfgNode()
 _C.MODEL.TYPE = "hrnet"
