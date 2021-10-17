@@ -3,6 +3,7 @@ import os
 from typing import List
 from shutil import rmtree
 
+import numpy as np
 from torch.utils.data import DataLoader
 import torch
 from torch.nn import Module
@@ -78,3 +79,6 @@ def infer(
 
                 output_path = get_path_for_output("alphablend", destination, name)
                 generate_save_alphablend(input_img, mask, mask_config, output_path)
+
+                output_path_mask = get_path_for_output("mask", destination, name)
+                np.save(output_path_mask, mask)
