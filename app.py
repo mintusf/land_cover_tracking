@@ -15,6 +15,7 @@ from utils.dash_utils import (
     download_action,
     get_polygon_coord,
     refresh_action,
+    get_corner_coord,
 )
 
 from utils.io_utils import (
@@ -227,16 +228,16 @@ def update_list_for_prediction(x):
 
 @app.callback(
     [Output("marker_pred", "position")],
-    [Input("polygon-pred-dropdown", "value"), State("edit_control", "geojson")],
+    [Input("polygon-pred-dropdown", "value")],
 )
-def add_marker_pred(selected_polygon, polygons):
+def add_marker_pred(selected_polygon):
     """Generate masks, if not generated yet, when image is selected"""
     if selected_polygon == "None":
         return [[0, 0]]
     else:
-        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-        coord = coords[os.path.join(DATA_DIR, str(selected_polygon), "tile_0.png")]
-        top_right_coord = [coord["lat"][1], coord["long"][1]]
+        top_right_coord = get_corner_coord(
+            selected_polygon, vertical="top", horizontal="right", config=config
+        )
         return [top_right_coord]
 
 
@@ -297,4 +298,4 @@ def update_map(
     return [cur_children]
 
 
-app.run_server(debug=True, port=8848)
+app.run_server(debug=True, port=8858)

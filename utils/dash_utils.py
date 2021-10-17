@@ -1,6 +1,6 @@
 import glob
 import os
-from typing import Tuple, List
+from typing import Dict, Tuple, List
 
 import cv2
 
@@ -31,6 +31,86 @@ def get_polygon_coord(polygons, selected_polygon):
             polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lng"],
         ],
     ]
+
+
+def get_coord_single_key(
+    coord: Dict[str, List[float]], vertical: str, horizontal: str
+) -> List[float]:
+    """Returns coordinates of a selected corner
+
+    Args:
+        coord (Dict[str, List[float]]): Polygon coordinates
+        vertical (str): String from ["top", "bottom"] indicating the corner
+        horizontal (str): String from ["left", "right"] indicating the corner
+
+    Returns:
+        List[float]: [latitude, longitude] coordinates of the corner
+    """
+    idx_vertical = 1 if vertical == "top" else 0
+    idx_horizontal = 0 if horizontal == "top" else 1
+    return [coord["lat"][idx_vertical], coord["long"][idx_horizontal]]
+
+
+def get_coord_multiple_keys(
+    keys: List[str],
+    coords: Dict[str, Dict[str, List[float]]],
+    vertical: int,
+    horizontal: int,
+) -> Tuple[List[float]]:
+    """Returns lists of corner coordinates of all polygons
+
+    Args:
+        keys (List[str]): List containing paths to polygon files
+        coords (Dict[str, Dict[str, List[float]]]): [description]
+        vertical (str): String from ["top", "bottom"] indicating the corner
+        horizontal (str): String from ["left", "right"] indicating the corner
+
+    Returns:
+        Tuple[List[float]]: Lists of corner coordinates of all polygons
+    """
+    lat_coords = []
+    long_coords = []
+
+    for key in keys:
+        coord = coords[key]
+        lat_coord, long_coord = get_coord_single_key(coord, vertical, horizontal)
+        lat_coords.append(lat_coord)
+        long_coords.append(long_coord)
+
+    return lat_coords, long_coords
+
+
+def get_corner_coord(
+    polygon_id: str, vertical: str, horizontal: str, config: CfgNode
+) -> List[float]:
+    """Returns [lattitude, longitude] coordinates of a polygon corner
+
+    Args:
+        polygon_id (str): Id of the selected polygon
+        vertical (str): String from ["top", "bottom"] indicating the corner
+        horizontal (str): String from ["left", "right"] indicating the corner
+        config (CfgNode): App config
+
+    Returns:
+        List[float]: Corner's coordinates
+    """
+    coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
+    directory = os.path.join(config.DATA_DIR, str(polygon_id))
+    keys = glob.glob(os.path.join(directory, "tile_*.png"))
+    assert vertical in ["top", "bottom"]
+    comp_func_vertical = max if vertical == "top" else min
+
+    assert horizontal in ["left", "right"]
+    comp_func_horizontal = max if horizontal == "right" else min
+
+    vertical_coords, horizontal_coords = get_coord_multiple_keys(
+        keys, coords, vertical, horizontal
+    )
+
+    vertical_coord = comp_func_vertical(vertical_coords)
+    horizontal_coord = comp_func_horizontal(horizontal_coords)
+
+    return [vertical_coord, horizontal_coord]
 
 
 def download_action(
