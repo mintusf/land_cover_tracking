@@ -97,6 +97,7 @@ def get_corner_coord(
     coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
     directory = os.path.join(config.DATA_DIR, str(polygon_id))
     keys = glob.glob(os.path.join(directory, "tile_*.png"))
+    keys = [key for key in keys if "pred" not in key]
     assert vertical in ["top", "bottom"]
     comp_func_vertical = max if vertical == "top" else min
 
