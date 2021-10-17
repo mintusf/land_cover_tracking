@@ -4,7 +4,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
 from flask import Flask, send_from_directory
-import glob
 
 import os
 from shutil import rmtree
@@ -21,6 +20,14 @@ from utils.dash_utils import (
 from utils.io_utils import (
     get_next_folder_name,
     load_json,
+)
+from utils.icons import (
+    download_icon,
+    pred_icon,
+    analyze_icon,
+    download_icon_url,
+    pred_icon_url,
+    analyze_icon_url,
 )
 
 server = Flask(__name__)
@@ -49,12 +56,19 @@ app.layout = html.Div(
                     children=[
                         dl.TileLayer(),
                         dl.Marker(
+                            icon=download_icon,
                             position=[0, 0],
                             id="marker",
                         ),
                         dl.Marker(
+                            icon=pred_icon,
                             position=[0, 0],
                             id="marker_pred",
+                        ),
+                        dl.Marker(
+                            icon=analyze_icon,
+                            position=[0, 0],
+                            id="marker_analyze",
                         ),
                         dl.FeatureGroup([dl.EditControl(id="edit_control")]),
                     ],
@@ -71,10 +85,20 @@ app.layout = html.Div(
                     children=[
                         html.Button(
                             id="download_raster",
-                            children=html.H2(
-                                "Download raster",
-                                style={"textAlign": "center", "fontSize": 25},
-                            ),
+                            children=[
+                                html.H2(
+                                    "Download raster",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=download_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
@@ -94,10 +118,20 @@ app.layout = html.Div(
                         ),
                         html.Button(
                             id="pred_button",
-                            children=html.H2(
-                                "Predict !",
-                                style={"textAlign": "center", "fontSize": 25},
-                            ),
+                            children=[
+                                html.H2(
+                                    "Predict !",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=pred_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
@@ -216,8 +250,8 @@ def add_marker(selected_polygon, polygons):
         return [[0, 0]]
     else:
         coord = get_polygon_coord(polygons, int(selected_polygon))
-        bottom_left_coord = [coord[0][0], coord[1][0]]
-        return [bottom_left_coord]
+        top_right = [coord[0][1], coord[1][1]]
+        return [top_right]
 
 
 @app.callback(
@@ -263,4 +297,4 @@ def update_map(
     return [cur_children]
 
 
-app.run_server(debug=True, port=8888)
+app.run_server(debug=True, port=8848)
