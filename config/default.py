@@ -5,7 +5,12 @@ _C = CfgNode()
 
 _C.DATA_DIR = "app_data"
 _C.POLYGON_JSON_NAME = "polygons.json"
-_C.RESOLUTION = 10
+
+_C.SENTINEL_HUB = CfgNode()
+_C.SENTINEL_HUB.RESOLUTION = 10
+_C.SENTINEL_HUB.CONFIG = "sentinelhub_config.json"
+_C.SENTINEL_HUB.START_DATE = "2020-08-01"
+_C.SENTINEL_HUB.END_DATE = "2020-09-30"
 
 _C.MODEL = CfgNode()
 _C.MODEL.TYPE = "hrnet"
@@ -14,16 +19,16 @@ _C.MODEL.CONFIG = "ai_engine/config/model/hrnet.yml"
 _C.DATASET = CfgNode()
 _C.DATASET.INPUT = CfgNode()
 _C.DATASET.INPUT.CHANNELS = [
-    "B1",
-    "B2",
-    "B3",
-    "B4",
-    "B5",
-    "B6",
-    "B7",
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06",
+    "B07",
     "B8",
     "B8a",
-    "B9",
+    "B09",
     "B10",
     "B11",
     "B12",
