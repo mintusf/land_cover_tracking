@@ -84,7 +84,7 @@ def download_action(
 
 
 def merge_preds(polygon_id: str, tile_name: str, savedir: str, config: CfgNode) -> None:
-    """Merges prediction npy files
+    """Merges subgrid predictions to build an image for whole polygon
 
     Args:
         polygon_id (str): Id of polygon selected for prediction
@@ -101,12 +101,12 @@ def merge_preds(polygon_id: str, tile_name: str, savedir: str, config: CfgNode) 
         )
     ):
         parts = os.path.splitext(os.path.split(pred_path)[1])[0].split("_")
-        x_idx = int(parts[2])
-        y_idx = int(parts[3])
+        x_min = int(parts[2])
+        y_min = int(parts[3])
+        x_max = int(parts[4])
+        y_max = int(parts[5])
         subgrid = cv2.imread(pred_path)
-        whole_img[
-            x_idx * 256 : (x_idx + 1) * 256, y_idx * 256 : (y_idx + 1) * 256, :
-        ] = subgrid
+        whole_img[x_min:x_max, y_min:y_max, :] = subgrid
 
     cv2.imwrite(savedir, whole_img)
 

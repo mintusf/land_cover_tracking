@@ -63,7 +63,8 @@ def is_npy_cropped(path: str, crop_size: List[int]):
 
 
 def crop_npy(path: str, dest_dir: str, crop_size: List[int]):
-    """Crop raster into subgrids
+    """Crop np array into subgrids.
+       Cropped subgrids cover whole array.
     Args:
         input_img (str): Path to raster file
         dest_dir (str): Destination directory. Must not exist.
@@ -77,18 +78,20 @@ def crop_npy(path: str, dest_dir: str, crop_size: List[int]):
     lat_crop_num = height // crop_size[0]
     long_crop_num = width // crop_size[1]
 
-    for lat_idx in range(lat_crop_num):
-        for long_idx in range(long_crop_num):
+    for lat_idx in range(lat_crop_num + 1):
+        for long_idx in range(long_crop_num + 1):
 
-            x_min = lat_idx * crop_size[0]
-            y_min = long_idx * crop_size[1]
+            x_max = min(height, (lat_idx + 1) * crop_size[0])
+            y_max = min(width, (long_idx + 1) * crop_size[1])
 
-            x_max = (lat_idx + 1) * crop_size[0]
-            y_max = (long_idx + 1) * crop_size[1]
+            x_min = x_max - crop_size[0]
+            y_min = y_max - crop_size[1]
 
             img_cropped = img[x_min:x_max, y_min:y_max, :]
             raster_name = os.path.splitext(os.path.split(path)[1])[0]
-            out_path = os.path.join(dest_dir, f"{raster_name}_{lat_idx}_{long_idx}.npy")
+            out_path = os.path.join(
+                dest_dir, f"{raster_name}_{x_min}_{y_min}_{x_max}_{y_max}.npy"
+            )
 
             np.save(out_path, img_cropped)
             files.append(out_path)
