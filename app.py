@@ -1,5 +1,6 @@
 from dash import Dash, callback_context
 from dash.dependencies import Output, Input, State
+from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
@@ -7,6 +8,7 @@ from flask import Flask, send_from_directory
 
 import os
 from shutil import rmtree
+import plotly.express as px
 
 from config.default import get_cfg_from_file
 from utils.dash_utils import (
@@ -16,11 +18,14 @@ from utils.dash_utils import (
     get_polygon_coord,
     refresh_action,
     get_corner_coord,
+    get_classes_count,
+    get_top_labels,
 )
 
 from utils.io_utils import (
     get_next_folder_name,
     load_json,
+    write_json,
 )
 from utils.icons import (
     download_icon,
@@ -142,12 +147,53 @@ app.layout = html.Div(
                         ),
                         dcc.Dropdown(
                             id="polygon-pred-dropdown",
-                            placeholder="Please choose the polygon",
+                            placeholder="Please choose the polygon for prediction",
                             value="None",
                             style={
                                 "width": "100%",
                                 "height": "4vh",
                                 "fontSize": 20,
+                            },
+                        ),
+                        html.Button(
+                            id="analyze_button",
+                            children=[
+                                html.H2(
+                                    "Analyze !",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=analyze_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
+                            style={
+                                "display": "inline-block",
+                                "textalign": "center",
+                                "width": "50vh",
+                                "margin-top": "5vh",
+                            },
+                        ),
+                        dcc.Dropdown(
+                            id="polygon-analyze-dropdown",
+                            placeholder="Please choose the polygon for prediction",
+                            value="None",
+                            style={
+                                "width": "100%",
+                                "height": "4vh",
+                                "fontSize": 20,
+                            },
+                        ),
+                        dcc.Graph(
+                            id="graph",
+                            style={
+                                "width": "100%",
+                                "height": "30vh",
+                                "visibility": "hidden",
                             },
                         ),
                     ],
@@ -166,6 +212,7 @@ app.layout = html.Div(
 
 DATA_DIR = config.DATA_DIR
 POLYGON_JSON_NAME = config.POLYGON_JSON_NAME
+STATS_JSON_NAME = config.STATS_JSON_NAME
 rmtree(DATA_DIR, ignore_errors=True)
 
 
@@ -242,6 +289,21 @@ def add_marker_pred(selected_polygon):
 
 
 @app.callback(
+    [Output("marker_analyze", "position")],
+    [Input("polygon-analyze-dropdown", "value")],
+)
+def add_marker_analyze(selected_polygon):
+    """Generate masks, if not generated yet, when image is selected"""
+    if selected_polygon == "None":
+        return [[0, 0]]
+    else:
+        top_right_coord = get_corner_coord(
+            selected_polygon, vertical="top", horizontal="right", config=config
+        )
+        return [top_right_coord]
+
+
+@app.callback(
     [Output("marker", "position")],
     [Input("polygon-dropdown", "value"), State("edit_control", "geojson")],
 )
@@ -298,4 +360,64 @@ def update_map(
     return [cur_children]
 
 
-app.run_server(debug=True, port=8858)
+@app.callback(
+    Output("polygon-analyze-dropdown", "options"),
+    Input("map", "children"),
+    prevent_initial_call=True,
+)
+def update_list_for_analysis(x):
+
+    # Prepare options
+    choices = []
+    foldername = get_next_folder_name(DATA_DIR)
+    if x is not None:
+        for option in range(int(foldername)):
+            first_tile_path = os.path.join(DATA_DIR, str(option), "tile_0.png")
+            if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
+                coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
+                coord = coords[first_tile_path]
+                coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
+                choices.append(
+                    {
+                        "label": f"{option}: Top left coord: {coord_str}",
+                        "value": f"{option}",
+                    }
+                )
+
+    return choices
+
+
+@app.callback(
+    Output("graph", "figure"),
+    Output("graph", "style"),
+    [
+        Input("analyze_button", "n_clicks"),
+        State("polygon-analyze-dropdown", "value"),
+        State("graph", "style"),
+    ],
+    prevent_initial_call=True,
+)
+def plot_stats(clicks, polygon_id, style):
+
+    top_k = 5
+    json_path = os.path.join(DATA_DIR, STATS_JSON_NAME)
+    stats = load_json(json_path)
+    if polygon_id not in stats:
+        labels_counts = get_classes_count(polygon_id, config)
+        stats[polygon_id] = labels_counts
+        write_json(json_path, stats)
+    else:
+        labels_counts = stats[polygon_id]
+    counts, top_labels = get_top_labels(labels_counts, k=top_k)
+    cover = 100 * counts / counts.sum()
+    fig = px.bar(
+        x=top_labels,
+        y=cover,
+        range_y=[0, 100],
+        title="Land cover [%]",
+    )
+    style["visibility"] = "visible"
+    return fig, style
+
+
+app.run_server(debug=True, port=8868)

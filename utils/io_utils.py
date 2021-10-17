@@ -3,6 +3,8 @@ import os
 from typing import Tuple, Union
 import numpy as np
 import json
+import yaml
+from yaml import CLoader as Loader
 
 # TODO: remove these hardcodings after adding submodule with model
 channels_stats = {
@@ -102,6 +104,13 @@ def load_json(path):
         return {}
     with open(path, "r") as f:
         return json.load(f)
+
+
+def load_yaml(yaml_path: str) -> dict:
+    """Loads yaml file"""
+    with open(yaml_path, "r") as f:
+        yaml_data = yaml.load(f, Loader=Loader)
+    return yaml_data
 
 
 def write_json(path, new_dict):

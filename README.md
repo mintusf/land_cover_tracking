@@ -1,5 +1,5 @@
 # land_cover_tracking
-Land cover tracking Web App
+Land cover tracking Web App (MVP for now)
 
 
 ## Environment
@@ -17,3 +17,13 @@ Land cover tracking Web App
 
 #### Raw environment
 1. Install with pip install -r ./docker/requirements.txt
+
+
+## App
+
+1. Setup SentinelHub config file `sentinelhub_config.json`, according to [this guide](https://sentinelhub-py.readthedocs.io/en/latest/configure.html)
+2. Download weigths from [here]() and put it to `weights` folder (more weigths coming)
+3. To start, in your environment, please run `python app.py`.
+
+Demo:
+![DEMO](assets/DEMO.gif)
