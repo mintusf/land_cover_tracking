@@ -365,7 +365,7 @@ def update_map(
     Input("map", "children"),
     prevent_initial_call=True,
 )
-def update_list_for_prediction(x):
+def update_list_for_analysis(x):
 
     # Prepare options
     choices = []
