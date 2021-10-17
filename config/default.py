@@ -9,7 +9,7 @@ _C.RESOLUTION = 10
 
 _C.MODEL = CfgNode()
 _C.MODEL.TYPE = "hrnet"
-_C.MODEL.CONFIG = "/home/ubuntu/land_cover_tracking/ai_engine/config/model/hrnet.yml"
+_C.MODEL.CONFIG = "ai_engine/config/model/hrnet.yml"
 
 _C.DATASET = CfgNode()
 _C.DATASET.INPUT = CfgNode()
