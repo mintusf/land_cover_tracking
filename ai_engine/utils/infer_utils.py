@@ -81,4 +81,4 @@ def infer(
                 generate_save_alphablend(input_img, mask, mask_config, output_path)
 
                 output_path_mask = get_path_for_output("mask", destination, name)
-                np.save(output_path_mask, mask)
+                np.save(output_path_mask, mask.cpu())
