@@ -4,7 +4,6 @@ import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
 from flask import Flask, send_from_directory
-import glob
 
 import os
 from shutil import rmtree
@@ -16,11 +15,20 @@ from utils.dash_utils import (
     download_action,
     get_polygon_coord,
     refresh_action,
+    get_corner_coord,
 )
 
 from utils.io_utils import (
     get_next_folder_name,
     load_json,
+)
+from utils.icons import (
+    download_icon,
+    pred_icon,
+    analyze_icon,
+    download_icon_url,
+    pred_icon_url,
+    analyze_icon_url,
 )
 
 server = Flask(__name__)
@@ -49,12 +57,19 @@ app.layout = html.Div(
                     children=[
                         dl.TileLayer(),
                         dl.Marker(
+                            icon=download_icon,
                             position=[0, 0],
                             id="marker",
                         ),
                         dl.Marker(
+                            icon=pred_icon,
                             position=[0, 0],
                             id="marker_pred",
+                        ),
+                        dl.Marker(
+                            icon=analyze_icon,
+                            position=[0, 0],
+                            id="marker_analyze",
                         ),
                         dl.FeatureGroup([dl.EditControl(id="edit_control")]),
                     ],
@@ -71,10 +86,20 @@ app.layout = html.Div(
                     children=[
                         html.Button(
                             id="download_raster",
-                            children=html.H2(
-                                "Download raster",
-                                style={"textAlign": "center", "fontSize": 25},
-                            ),
+                            children=[
+                                html.H2(
+                                    "Download raster",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=download_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
@@ -94,10 +119,20 @@ app.layout = html.Div(
                         ),
                         html.Button(
                             id="pred_button",
-                            children=html.H2(
-                                "Predict !",
-                                style={"textAlign": "center", "fontSize": 25},
-                            ),
+                            children=[
+                                html.H2(
+                                    "Predict !",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=pred_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
@@ -193,16 +228,16 @@ def update_list_for_prediction(x):
 
 @app.callback(
     [Output("marker_pred", "position")],
-    [Input("polygon-pred-dropdown", "value"), State("edit_control", "geojson")],
+    [Input("polygon-pred-dropdown", "value")],
 )
-def add_marker_pred(selected_polygon, polygons):
+def add_marker_pred(selected_polygon):
     """Generate masks, if not generated yet, when image is selected"""
     if selected_polygon == "None":
         return [[0, 0]]
     else:
-        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-        coord = coords[os.path.join(DATA_DIR, str(selected_polygon), "tile_0.png")]
-        top_right_coord = [coord["lat"][1], coord["long"][1]]
+        top_right_coord = get_corner_coord(
+            selected_polygon, vertical="top", horizontal="right", config=config
+        )
         return [top_right_coord]
 
 
@@ -216,8 +251,8 @@ def add_marker(selected_polygon, polygons):
         return [[0, 0]]
     else:
         coord = get_polygon_coord(polygons, int(selected_polygon))
-        bottom_left_coord = [coord[0][0], coord[1][0]]
-        return [bottom_left_coord]
+        top_right = [coord[0][1], coord[1][1]]
+        return [top_right]
 
 
 @app.callback(
@@ -263,4 +298,4 @@ def update_map(
     return [cur_children]
 
 
-app.run_server(debug=True, port=8888)
+app.run_server(debug=True, port=8858)
