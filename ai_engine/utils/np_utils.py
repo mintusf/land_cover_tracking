@@ -89,7 +89,9 @@ def crop_npy(path: str, dest_dir: str, crop_size: List[int]):
 
             img_cropped = img[x_min:x_max, y_min:y_max, :]
             raster_name = os.path.splitext(os.path.split(path)[1])[0]
-            out_path = os.path.join(dest_dir, f"{raster_name}_{x_min}_{y_min}_{x_max}_{y_max}.npy")
+            out_path = os.path.join(
+                dest_dir, f"{raster_name}_{x_min}_{y_min}_{x_max}_{y_max}.npy"
+            )
 
             np.save(out_path, img_cropped)
             files.append(out_path)
