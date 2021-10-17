@@ -154,7 +154,7 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode) -> np.array:
     used_bands = get_used_bands_list(config)
     eval_script = get_eval_script(used_bands)
 
-    config = get_sentinelhub_config(config.SENTINEL_HUB_CONFIG)
+    cred_config = get_sentinelhub_config(config.SENTINEL_HUB.CONFIG)
 
     request_all_bands = SentinelHubRequest(
         evalscript=eval_script,
@@ -171,7 +171,7 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode) -> np.array:
         responses=[SentinelHubRequest.output_response("default", MimeType.TIFF)],
         bbox=tile_coord,
         size=bbox_to_dimensions(tile_coord, config.SENTINEL_HUB.RESOLUTION),
-        config=config,
+        config=cred_config,
     )
 
     downloaded_img = request_all_bands.get_data()[0]

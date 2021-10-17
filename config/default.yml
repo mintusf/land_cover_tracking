@@ -4,7 +4,7 @@ SENTINEL_HUB:
   RESOLUTION: 10
   CONFIG: "sentinelhub_config.json"
   START_DATE: "2020-08-01"
-  START_DATE: "2020-09-30"
+  END_DATE: "2020-09-30"
 
 MODEL:
   TYPE: "hrnet"
@@ -13,16 +13,16 @@ MODEL:
 DATASET:
   INPUT:
     CHANNELS: [
-        "B1",
-        "B2",
-        "B3",
-        "B4",
-        "B5",
-        "B6",
-        "B7",
-        "B8",
+        "B01",
+        "B02",
+        "B03",
+        "B04",
+        "B05",
+        "B06",
+        "B07",
+        "B08",
         "B8a",
-        "B9",
+        "B09",
         "B10",
         "B11",
         "B12",
