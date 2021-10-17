@@ -3,6 +3,7 @@ import os
 from typing import Dict, Tuple, List
 
 import cv2
+import numpy as np
 
 from utils.ai_engine_wrapper import ai_engine_infer
 from utils.sentinel_api import get_raster_from_coord
@@ -11,6 +12,7 @@ from utils.io_utils import (
     get_next_folder_name,
     write_json,
     load_json,
+    load_yaml,
 )
 from config.default import CfgNode
 
@@ -266,3 +268,52 @@ def refresh_action(config: CfgNode) -> Tuple[List[str], List[float]]:
         coords.append(converted_coord)
 
     return paths, coords
+
+
+def get_classes_count(polygon_id: str, config: CfgNode) -> Dict[str, int]:
+    """Calculates count of each class for the polygon
+
+    Args:
+        polygon_id (str): Polygon id
+        config (CfgNode): App config
+
+    Returns:
+        Dict[str, int]: Classes counts
+    """
+    polygon_dir = os.path.join(config.DATA_DIR, str(polygon_id))
+    all_masks = glob.glob(os.path.join(polygon_dir, "*", "mask", "*.npy"))
+    mask_config = load_yaml(config.DATASET.MASK.CONFIG)
+    class2label = mask_config["class2label"]
+    all_counts = np.zeros(len(class2label))
+    for mask_path in all_masks:
+        mask = np.load(mask_path)
+        classes_count = np.bincount(mask.flatten(), minlength=len(class2label))
+        all_counts += classes_count
+
+    labels_count = {}
+    for class_id, label in class2label.items():
+        labels_count[label] = all_counts[class_id]
+
+    return labels_count
+
+
+def get_top_labels(labels_counts: Dict[str, int], k: int) -> Tuple[np.array, List[str]]:
+    """Returns top k classes with highest pixels count
+
+    Args:
+        labels_counts (Dict[str, int]): Input dictionary with classes counts
+        k (int): Top k to select
+
+    Returns:
+        Tuple[np.array, List[str]]: Dictionary with topk classes
+    """
+    sorted_labels = sorted(labels_counts.keys(), key=lambda x: labels_counts[x])[::-1]
+    counts = []
+    labels = []
+    for i, label in enumerate(sorted_labels):
+        if i == k:
+            break
+        if labels_counts[label]:
+            counts.append(labels_counts[label])
+            labels.append(label)
+    return np.array(counts), labels
