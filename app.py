@@ -1,24 +1,34 @@
 from dash import Dash, callback_context
 from dash.dependencies import Output, Input, State
-from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl
 from flask import Flask, send_from_directory
-import glob
 
 import os
-import cv2
 from shutil import rmtree
 
 from config.default import get_cfg_from_file
-from utils.dash_utils import get_coord_from_feature
-from utils.sentinel_api import get_raster_from_coord
+from utils.dash_utils import (
+    get_coord_from_feature,
+    predict_action,
+    download_action,
+    get_polygon_coord,
+    refresh_action,
+    get_corner_coord,
+)
+
 from utils.io_utils import (
-    convert_sat_np_for_vis,
     get_next_folder_name,
-    write_json,
     load_json,
+)
+from utils.icons import (
+    download_icon,
+    pred_icon,
+    analyze_icon,
+    download_icon_url,
+    pred_icon_url,
+    analyze_icon_url,
 )
 
 server = Flask(__name__)
@@ -30,57 +40,132 @@ app.layout = html.Div(
         html.H1(
             id="title",
             children="Land Cover Tracking",
-            style={"textAlign": "center", "fontSize": 60},
+            style={
+                "textAlign": "center",
+                "fontSize": 40,
+                "margin-top": "0vw",
+                "margin-bottom": "0vw",
+            },
         ),
         # Setup a map with the edit control.
-        dl.Map(
-            center=[56, 10],
-            zoom=4,
-            bounds=[[50, 20], [50.5, 20.5]],
+        html.Div(
             children=[
-                dl.TileLayer(),
-                dl.Marker(
-                    position=[0, 0],
-                    id="marker",
+                dl.Map(
+                    center=[56, 10],
+                    zoom=4,
+                    bounds=[[50, 20], [50.5, 20.5]],
+                    children=[
+                        dl.TileLayer(),
+                        dl.Marker(
+                            icon=download_icon,
+                            position=[0, 0],
+                            id="marker",
+                        ),
+                        dl.Marker(
+                            icon=pred_icon,
+                            position=[0, 0],
+                            id="marker_pred",
+                        ),
+                        dl.Marker(
+                            icon=analyze_icon,
+                            position=[0, 0],
+                            id="marker_analyze",
+                        ),
+                        dl.FeatureGroup([dl.EditControl(id="edit_control")]),
+                    ],
+                    style={
+                        "width": "70%",
+                        "height": "91vh",
+                        "margin": "auto",
+                        "display": "inline-block",
+                        "position": "relative",
+                    },
+                    id="map",
                 ),
-                dl.FeatureGroup([dl.EditControl(id="edit_control")]),
+                html.Div(
+                    children=[
+                        html.Button(
+                            id="download_raster",
+                            children=[
+                                html.H2(
+                                    "Download raster",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=download_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
+                            style={
+                                "display": "inline-block",
+                                "textalign": "center",
+                                "width": "50vh",
+                                "margin-top": "5vh",
+                            },
+                        ),
+                        dcc.Dropdown(
+                            id="polygon-dropdown",
+                            placeholder="Please choose the polygon",
+                            value="None",
+                            style={
+                                "width": "50vh",
+                                "height": "4vh",
+                                "fontSize": 20,
+                            },
+                        ),
+                        html.Button(
+                            id="pred_button",
+                            children=[
+                                html.H2(
+                                    "Predict !",
+                                    style={
+                                        "display": "inline-block",
+                                        "textAlign": "center",
+                                        "fontSize": 25,
+                                    },
+                                ),
+                                html.Img(
+                                    src=pred_icon_url,
+                                    style={"display": "inline-block", "height": "5vh"},
+                                ),
+                            ],
+                            style={
+                                "display": "inline-block",
+                                "textalign": "center",
+                                "width": "50vh",
+                                "margin-top": "5vh",
+                            },
+                        ),
+                        dcc.Dropdown(
+                            id="polygon-pred-dropdown",
+                            placeholder="Please choose the polygon",
+                            value="None",
+                            style={
+                                "width": "100%",
+                                "height": "4vh",
+                                "fontSize": 20,
+                            },
+                        ),
+                    ],
+                    style={
+                        "display": "inline-block",
+                        "margin-left": "3vw",
+                        "position": "absolute",
+                        "height": 200,
+                    },
+                ),
             ],
-            style={
-                "width": "100%",
-                "height": "80vh",
-                "margin": "auto",
-                "display": "block",
-                "position": "relative",
-            },
-            id="map",
-        ),
-        html.Button(
-            id="download_raster",
-            children=html.H2(
-                "Download raster", style={"textAlign": "center", "fontSize": 30}
-            ),
-            style={
-                "display": "inline-block",
-                "textalign": "center",
-            },
-        ),
-        dcc.Dropdown(
-            id="polygon-dropdown",
-            placeholder="Please choose the polygon",
-            value="None",
-            style={
-                "width": "80%",
-                "height": "4vh",
-                "fontSize": 30,
-                "display": "inline-block",
-            },
+            style={"backgroundColor": "grey"},
         ),
     ]
 )
 
 DATA_DIR = config.DATA_DIR
 POLYGON_JSON_NAME = config.POLYGON_JSON_NAME
-RESOLUTION = config.RESOLUTION
 rmtree(DATA_DIR, ignore_errors=True)
 
 
@@ -107,7 +192,7 @@ def mirror(x):
                 coord = get_coord_from_feature(feature)
                 choices.append(
                     {
-                        "label": f"{rect_idx}: Bottom left coordinates: {coord}",
+                        "label": f"{rect_idx}: Bottom left coord: {coord}",
                         "value": f"{feat_idx}",
                     }
                 )
@@ -116,17 +201,44 @@ def mirror(x):
     return choices
 
 
-def get_polygon_coord(polygons, selected_polygon):
-    return [
-        [
-            polygons["features"][selected_polygon]["properties"]["_bounds"][0]["lat"],
-            polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lat"],
-        ],
-        [
-            polygons["features"][selected_polygon]["properties"]["_bounds"][0]["lng"],
-            polygons["features"][selected_polygon]["properties"]["_bounds"][1]["lng"],
-        ],
-    ]
+@app.callback(
+    Output("polygon-pred-dropdown", "options"),
+    Input("map", "children"),
+    prevent_initial_call=True,
+)
+def update_list_for_prediction(x):
+
+    # Prepare options
+    choices = []
+    foldername = get_next_folder_name(DATA_DIR)
+    if x is not None:
+        for option in range(int(foldername)):
+            coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
+            coord = coords[os.path.join(DATA_DIR, str(option), "tile_0.png")]
+            coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
+            choices.append(
+                {
+                    "label": f"{option}: Top left coord: {coord_str}",
+                    "value": f"{option}",
+                }
+            )
+
+    return choices
+
+
+@app.callback(
+    [Output("marker_pred", "position")],
+    [Input("polygon-pred-dropdown", "value")],
+)
+def add_marker_pred(selected_polygon):
+    """Generate masks, if not generated yet, when image is selected"""
+    if selected_polygon == "None":
+        return [[0, 0]]
+    else:
+        top_right_coord = get_corner_coord(
+            selected_polygon, vertical="top", horizontal="right", config=config
+        )
+        return [top_right_coord]
 
 
 @app.callback(
@@ -139,66 +251,51 @@ def add_marker(selected_polygon, polygons):
         return [[0, 0]]
     else:
         coord = get_polygon_coord(polygons, int(selected_polygon))
-        bottom_left_coord = [coord[0][0], coord[1][0]]
-        return [bottom_left_coord]
+        top_right = [coord[0][1], coord[1][1]]
+        return [top_right]
 
 
 @app.callback(
     [Output("map", "children")],
     [
         Input("download_raster", "n_clicks"),
+        Input("pred_button", "n_clicks"),
         State("map", "children"),
         State("polygon-dropdown", "value"),
+        State("polygon-pred-dropdown", "value"),
         State("edit_control", "geojson"),
     ],
 )
-def download_raster_callback(n_clicks, cur_children, selected_polygon, polygons):
+def update_map(
+    download_button,
+    pred_button,
+    cur_children,
+    selected_polygon_download,
+    selected_polygon_pred,
+    polygons,
+):
 
     ctx = callback_context.triggered
     if ctx[0]["prop_id"] == "download_raster.n_clicks":
-        coord = get_polygon_coord(polygons, int(selected_polygon))
 
-        foldername = get_next_folder_name(DATA_DIR)
-        savedir = os.path.join(DATA_DIR, foldername)
-        coords = get_raster_from_coord(
-            lat=coord[0], long=coord[1], resolution=RESOLUTION, savedir=savedir
-        )
+        paths, coords = download_action(polygons, selected_polygon_download, config)
+        layer_name = "image"
 
-        write_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME), coords)
+    if ctx[0]["prop_id"] == "pred_button.n_clicks":
 
-        img_paths = glob.glob(f"{savedir}/*.npy")
-        for img_path in img_paths:
-            img = convert_sat_np_for_vis(img_path)
-            png_path = img_path.replace(".npy", ".png")
-            cv2.imwrite(png_path, img)
+        paths, coords = predict_action(config, selected_polygon_pred)
+        layer_name = "mask"
 
-            # TODO: refactor to utils method
-            tile_coord = coords[png_path]
-            converted_coord = [
-                [tile_coord["lat"][0], tile_coord["long"][0]],
-                [tile_coord["lat"][1], tile_coord["long"][1]],
-            ]
-
-            cur_children.append(
-                dl.ImageOverlay(
-                    id="shown-image", opacity=1, url=png_path, bounds=converted_coord
-                ),
-            )
     else:
-        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-        for key, tile_coord in coords.items():
-            # tile_coord = coords[key]
-            converted_coord = [
-                [tile_coord["lat"][0], tile_coord["long"][0]],
-                [tile_coord["lat"][1], tile_coord["long"][1]],
-            ]
-            cur_children.append(
-                dl.ImageOverlay(
-                    id="shown-image", opacity=1, url=key, bounds=converted_coord
-                ),
-            )
+        paths, coords = refresh_action(config)
+        layer_name = "loaded"
+
+    for path, coord in zip(paths, coords):
+        cur_children.append(
+            dl.ImageOverlay(id=layer_name, opacity=1, url=path, bounds=coord),
+        )
 
     return [cur_children]
 
 
-app.run_server(debug=True, port=8888)
+app.run_server(debug=True, port=8858)

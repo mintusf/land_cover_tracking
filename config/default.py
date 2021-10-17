@@ -5,7 +5,56 @@ _C = CfgNode()
 
 _C.DATA_DIR = "app_data"
 _C.POLYGON_JSON_NAME = "polygons.json"
-_C.RESOLUTION = 10
+
+_C.SENTINEL_HUB = CfgNode()
+_C.SENTINEL_HUB.RESOLUTION = 10
+_C.SENTINEL_HUB.CONFIG = "sentinelhub_config.json"
+_C.SENTINEL_HUB.START_DATE = "2020-08-01"
+_C.SENTINEL_HUB.END_DATE = "2020-09-30"
+
+_C.MODEL = CfgNode()
+_C.MODEL.TYPE = "hrnet"
+_C.MODEL.CONFIG = "ai_engine/config/model/hrnet.yml"
+
+_C.DATASET = CfgNode()
+_C.DATASET.INPUT = CfgNode()
+_C.DATASET.INPUT.CHANNELS = [
+    "B01",
+    "B02",
+    "B03",
+    "B04",
+    "B05",
+    "B06",
+    "B07",
+    "B8",
+    "B8a",
+    "B09",
+    "B10",
+    "B11",
+    "B12",
+]
+_C.DATASET.INPUT.USED_CHANNELS = [1, 2, 3]
+_C.DATASET.INPUT.STATS_FILE = os.path.join(
+    "ai_engine",
+    "config",
+    "dataset",
+    "stats",
+    "channels_stats_less_classes_more_snow.json",
+)
+_C.DATASET.MASK = CfgNode()
+_C.DATASET.MASK.CONFIG = os.path.join(
+    "ai_engine", "config", "dataset", "mask_configs", "less_classes.yml"
+)
+_C.DATASET.SHAPE = [256, 256]
+
+_C.INFER = CfgNode()
+_C.INFER.DEVICE = "cpu"
+_C.INFER.WORKERS = 0
+_C.INFER.BATCH_SIZE_PER_DEVICE = 1
+_C.INFER.SEED = 42
+_C.INFER.WEIGHTS_PATH = (
+    "weights/cfg_weighted_loss_more_snow_data_aug_hrnet_3bands_resume_best_f1.pth"
+)
 
 
 def get_cfg_defaults():

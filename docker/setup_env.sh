@@ -16,5 +16,7 @@ sudo apt-get update -y \
   && sudo apt-get clean \
   && sudo rm -rf /var/lib/apt/lists/*
 
+apt-get install ffmpeg libsm6 libxext6  -y
+
 # Create pipenv environment
 sudo pip install -r ./docker/requirements.txt
