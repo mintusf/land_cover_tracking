@@ -1,3 +1,41 @@
 DATA_DIR: "app_data"
 POLYGON_JSON_NAME: "polygons.json"
-RESOLUTION: 10
+SENTINEL_HUB:
+  RESOLUTION: 10
+  CONFIG: "sentinelhub_config.json"
+  START_DATE: "2020-08-01"
+  START_DATE: "2020-09-30"
+
+MODEL:
+  TYPE: "hrnet"
+  CONFIG: "ai_engine/config/model/hrnet.yml"
+
+DATASET:
+  INPUT:
+    CHANNELS: [
+        "B1",
+        "B2",
+        "B3",
+        "B4",
+        "B5",
+        "B6",
+        "B7",
+        "B8",
+        "B8a",
+        "B9",
+        "B10",
+        "B11",
+        "B12",
+    ]
+    USED_CHANNELS: [1, 2, 3]
+    STATS_FILE: "ai_engine/config/dataset/stats/channels_stats_less_classes_more_snow.json"
+  MASK:
+    CONFIG: "ai_engine/config/dataset/mask_configs/less_classes.yml"
+  SHAPE: [256, 256]
+
+INFER:
+  DEVICE: "cpu"
+  WORKERS: 0
+  BATCH_SIZE_PER_DEVICE: 1
+  SEED: 42
+  WEIGHTS_PATH: "weights/cfg_weighted_loss_more_snow_data_aug_hrnet_3bands_resume_best_f1.pth"
