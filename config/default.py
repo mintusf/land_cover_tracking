@@ -5,6 +5,7 @@ _C = CfgNode()
 
 _C.DATA_DIR = "app_data"
 _C.POLYGON_JSON_NAME = "polygons.json"
+_C.STATS_JSON_NAME = "stats.json"
 
 _C.SENTINEL_HUB = CfgNode()
 _C.SENTINEL_HUB.RESOLUTION = 10
