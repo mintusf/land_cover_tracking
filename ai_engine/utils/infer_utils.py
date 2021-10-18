@@ -20,9 +20,9 @@ from ai_engine.utils.visualization_utils import (
 def get_path_for_output(output_type, destination, name):
     output_destination = os.path.join(destination, output_type)
     os.makedirs(output_destination, exist_ok=True)
-    extension = "tif" if "raster" in output_type else "png"
+    extension = "" if "np" in output_type else ".png"
     name = os.path.splitext(os.path.split(name)[1])[0]
-    alphablend_path = os.path.join(output_destination, name + f".{extension}")
+    alphablend_path = os.path.join(output_destination, name + f"{extension}")
 
     return alphablend_path
 
@@ -80,5 +80,5 @@ def infer(
                 output_path = get_path_for_output("alphablend", destination, name)
                 generate_save_alphablend(input_img, mask, mask_config, output_path)
 
-                output_path_mask = get_path_for_output("mask", destination, name)
+                output_path_mask = get_path_for_output("mask_np", destination, name)
                 np.save(output_path_mask, mask.cpu())

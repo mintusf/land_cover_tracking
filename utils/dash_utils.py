@@ -4,6 +4,7 @@ from typing import Dict, Tuple, List
 
 import cv2
 import numpy as np
+import torch
 
 from utils.ai_engine_wrapper import ai_engine_infer
 from utils.sentinel_api import get_raster_from_coord
@@ -14,7 +15,9 @@ from utils.io_utils import (
     load_json,
     load_yaml,
 )
+from ai_engine.utils.infer_utils import get_path_for_output
 from config.default import CfgNode
+from ai_engine.utils.visualization_utils import convert_np_for_vis, create_alphablend
 
 
 def get_coord_from_feature(feature):
@@ -237,6 +240,67 @@ def predict_action(
     return paths, coords_collected
 
 
+def new_alpha_action(
+    config: CfgNode, selected_polygon_analyze: str, alpha
+) -> Tuple[List[str], List[float]]:
+    """Performs prediction on selected downloaded are
+
+    Args:
+        config (CfgNode): App config
+        selected_polygon_pred (str): Id of selected area, corresponds to folder name
+
+    Returns:
+        Tuple[List[str], List[float]]: A Tuple containing
+            * List of paths to downloaded image
+            * List of corresponding coordinates, in format:
+                [[south, west], [north, east]]
+    """
+
+    paths = []
+    coords_collected = []
+    mask_config = load_yaml(config.DATASET.MASK.CONFIG)
+    polygon_root = os.path.join(config.DATA_DIR, selected_polygon_analyze)
+    for input_file in glob.glob(os.path.join(polygon_root, "*.npy")):
+        tile_name = os.path.splitext(os.path.split(input_file)[1])[0]
+        savedir = os.path.join(
+            polygon_root,
+            f"{tile_name}_pred_" + f"{alpha:.02f}".replace(".", "") + ".png",
+        )
+
+        if not os.path.isfile(savedir):
+            for mask_file in glob.glob(
+                os.path.join(polygon_root, tile_name, "mask_np", "*.npy")
+            ):
+
+                input_single_file = mask_file.replace("/mask_np", "")
+                mask = np.load(mask_file)
+                input_img = convert_sat_np_for_vis(input_single_file)
+
+                name = os.path.splitext(os.path.split(mask_file)[1])[0]
+                destination = os.path.join(polygon_root, tile_name)
+                output_path = get_path_for_output("alphablend", destination, name)
+
+                colors_dict = mask_config["colors"]
+                class2label = mask_config["class2label"]
+                alphablended = create_alphablend(
+                    input_img, mask, alpha, colors_dict, class2label
+                )
+                alphablended = cv2.cvtColor(alphablended, cv2.COLOR_BGR2RGB)
+                cv2.imwrite(output_path, alphablended)
+
+            merge_preds(selected_polygon_analyze, tile_name, savedir, config)
+        coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
+        tile_coord = coords[input_file.replace("npy", "png")]
+        converted_coord = [
+            [tile_coord["lat"][0], tile_coord["long"][0]],
+            [tile_coord["lat"][1], tile_coord["long"][1]],
+        ]
+        paths.append(savedir)
+        coords_collected.append(converted_coord)
+
+    return paths, coords_collected
+
+
 def refresh_action(config: CfgNode) -> Tuple[List[str], List[float]]:
     """Collects all available images, both raw and predictions,
         end returns them together with corresponding coordinates.
@@ -281,7 +345,7 @@ def get_classes_count(polygon_id: str, config: CfgNode) -> Dict[str, int]:
         Dict[str, int]: Classes counts
     """
     polygon_dir = os.path.join(config.DATA_DIR, str(polygon_id))
-    all_masks = glob.glob(os.path.join(polygon_dir, "*", "mask", "*.npy"))
+    all_masks = glob.glob(os.path.join(polygon_dir, "*", "mask_np", "*.npy"))
     mask_config = load_yaml(config.DATASET.MASK.CONFIG)
     class2label = mask_config["class2label"]
     all_counts = np.zeros(len(class2label))

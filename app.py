@@ -20,6 +20,7 @@ from utils.dash_utils import (
     get_corner_coord,
     get_classes_count,
     get_top_labels,
+    new_alpha_action,
 )
 
 from utils.io_utils import (
@@ -142,7 +143,7 @@ app.layout = html.Div(
                                 "display": "inline-block",
                                 "textalign": "center",
                                 "width": "50vh",
-                                "margin-top": "5vh",
+                                "margin-top": "2vh",
                             },
                         ),
                         dcc.Dropdown(
@@ -175,8 +176,34 @@ app.layout = html.Div(
                                 "display": "inline-block",
                                 "textalign": "center",
                                 "width": "50vh",
-                                "margin-top": "5vh",
+                                "margin-top": "2vh",
                             },
+                        ),
+                        html.Div(
+                            children=[
+                                html.H3(
+                                    "Slider for prediction mask transparency",
+                                    style={
+                                        "textAlign": "center",
+                                        "fontSize": 18,
+                                    },
+                                ),
+                                dcc.Slider(
+                                    id="ratio-slider",
+                                    min=0,
+                                    max=1,
+                                    step=0.25,
+                                    marks={
+                                        0: "0",
+                                        0.25: "0.25",
+                                        0.5: "0.5",
+                                        0.75: "0.75",
+                                        1: "1",
+                                    },
+                                    value=0.5,
+                                ),
+                            ],
+                            style={"backgroundColor": "white"},
                         ),
                         dcc.Dropdown(
                             id="polygon-analyze-dropdown",
@@ -322,18 +349,22 @@ def add_marker(selected_polygon, polygons):
     [
         Input("download_raster", "n_clicks"),
         Input("pred_button", "n_clicks"),
+        Input("ratio-slider", "value"),
         State("map", "children"),
         State("polygon-dropdown", "value"),
         State("polygon-pred-dropdown", "value"),
+        State("polygon-analyze-dropdown", "value"),
         State("edit_control", "geojson"),
     ],
 )
 def update_map(
     download_button,
     pred_button,
+    slider_value,
     cur_children,
     selected_polygon_download,
     selected_polygon_pred,
+    selected_polygon_analyze,
     polygons,
 ):
 
@@ -343,10 +374,19 @@ def update_map(
         paths, coords = download_action(polygons, selected_polygon_download, config)
         layer_name = "image"
 
-    if ctx[0]["prop_id"] == "pred_button.n_clicks":
+    elif ctx[0]["prop_id"] == "pred_button.n_clicks":
 
         paths, coords = predict_action(config, selected_polygon_pred)
         layer_name = "mask"
+
+    elif ctx[0]["prop_id"] == "ratio-slider.value":
+        if selected_polygon_analyze is None or selected_polygon_analyze == "None":
+            return [cur_children]
+        else:
+            paths, coords = new_alpha_action(
+                config, selected_polygon_analyze, 1 - slider_value
+            )
+            layer_name = "mask"
 
     else:
         paths, coords = refresh_action(config)
@@ -420,4 +460,4 @@ def plot_stats(clicks, polygon_id, style):
     return fig, style
 
 
-app.run_server(debug=True, port=8868)
+app.run_server(debug=True, port=8208)
