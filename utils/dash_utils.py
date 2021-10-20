@@ -155,12 +155,8 @@ def download_action(
         png_path = img_path.replace(".npy", ".png")
         cv2.imwrite(png_path, img)
 
-        # TODO: refactor to utils method
-        tile_coord = coords[png_path]
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+        converted_coord = get_converted_coords_from_dict(coords, png_path)
+
         paths.append(png_path)
         coords_collected.append(converted_coord)
 
@@ -263,6 +259,50 @@ def generate_alpha_for_tile(mask_file: str, mask_config: dict, alpha: float) -> 
     )
 
 
+def convert_coords(coords_in: Dict[str, List[float]]) -> List[List[float]]:
+    """Converts coordinates from a dict to a list
+
+    Args:
+        coords_in (Dict[str, List[float]]): Dictionary with following elements:
+            'lat':
+                [south, north]
+            'long':
+                [west, east]
+
+    Returns:
+        List[List[float]]: Coordinates in format [[south, west], [north, east]]
+    """
+    converted_coord = [
+        [coords_in["lat"][0], coords_in["long"][0]],
+        [coords_in["lat"][1], coords_in["long"][1]],
+    ]
+    return converted_coord
+
+
+def get_converted_coords_from_dict(
+    coords_dict: Dict[str, Dict[str, List[float]]], key: str
+) -> List[List[float]]:
+    """Returns covnerted coordinates from a dictionary given a key
+
+    Args:
+        coords_dict (Dict[Dict[str, float]]): Dictionary with following elements:
+            path_to_a_png_tile_file:
+                'lat':
+                    [south value, north value]
+                'long':
+                    [west value, east value]
+
+        key (str): Key in a dictionary
+
+    Returns:
+        List[List[float]]: Coordinates in format [[south, west], [north, east]]
+    """
+    tile_coord = coords_dict[key]
+
+    converted_coords = convert_coords(tile_coord)
+    return converted_coords
+
+
 def get_converted_coords(config: CfgNode, input_file: str) -> List[List[float]]:
     """Returns coordinates given a path to an image.
        Supported image extensions are: [npy, png]
@@ -275,11 +315,8 @@ def get_converted_coords(config: CfgNode, input_file: str) -> List[List[float]]:
         List[List[float]]: Coordinates in format [[south, west], [north, east]]
     """
     coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
-    tile_coord = coords[input_file.replace("npy", "png")]
-    converted_coord = [
-        [tile_coord["lat"][0], tile_coord["long"][0]],
-        [tile_coord["lat"][1], tile_coord["long"][1]],
-    ]
+    png_path = input_file.replace("npy", "png")
+    converted_coord = get_converted_coords_from_dict(coords, png_path)
     return converted_coord
 
 
@@ -348,13 +385,10 @@ def refresh_action(config: CfgNode) -> Tuple[List[str], List[float]]:
             url = pred_path
         else:
             url = key
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+        converted_coords = convert_coords(tile_coord)
 
         paths.append(url)
-        coords.append(converted_coord)
+        coords.append(converted_coords)
 
     return paths, coords
 
