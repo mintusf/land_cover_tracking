@@ -172,13 +172,10 @@ def merge_preds(polygon_id: str, tile_name: str, savedir: str, config: CfgNode) 
         savedir (str): Saving directory
         config (CfgNode): App config
     """
-    whole_img = cv2.imread(
-        os.path.join(config.DATA_DIR, str(polygon_id), f"{tile_name}.png")
-    )
+    polygon_dir = os.path.join(config.DATA_DIR, str(polygon_id))
+    whole_img = cv2.imread(os.path.join(polygon_dir, f"{tile_name}.png"))
     for pred_path in glob.glob(
-        os.path.join(
-            config.DATA_DIR, str(polygon_id), f"{tile_name}", "alphablend", "*.png"
-        )
+        os.path.join(polygon_dir, f"{tile_name}", "alphablend", "*.png")
     ):
         parts = os.path.splitext(os.path.split(pred_path)[1])[0].split("_")
         x_min = int(parts[2])
@@ -209,20 +206,17 @@ def predict_action(
 
     paths = []
     coords_collected = []
-    for input_file in glob.glob(
-        os.path.join(config.DATA_DIR, selected_polygon_pred, "*.npy")
-    ):
+    input_files_dir = os.path.join(config.DATA_DIR, selected_polygon_pred)
+    for input_file in glob.glob(os.path.join(input_files_dir, "*.npy")):
         tile_name = os.path.splitext(os.path.split(input_file)[1])[0]
         ai_engine_infer(
             config,
             tile_path=input_file,
             checkpoint=config.INFER.WEIGHTS_PATH,
-            destination=os.path.join(config.DATA_DIR, selected_polygon_pred, tile_name),
+            destination=os.path.join(input_files_dir, tile_name),
         )
 
-        savedir = os.path.join(
-            config.DATA_DIR, selected_polygon_pred, f"{tile_name}_pred.png"
-        )
+        savedir = os.path.join(input_files_dir, f"{tile_name}_pred.png")
         merge_preds(selected_polygon_pred, tile_name, savedir, config)
 
         paths.append(savedir)
@@ -342,15 +336,13 @@ def new_alpha_action(
     polygon_root = os.path.join(config.DATA_DIR, selected_polygon_analyze)
     for input_file in glob.glob(os.path.join(polygon_root, "*.npy")):
         tile_name = os.path.splitext(os.path.split(input_file)[1])[0]
-        savedir = os.path.join(
-            polygon_root,
-            f"{tile_name}_pred_" + f"{alpha:.02f}".replace(".", "") + ".png",
-        )
+        save_filename = f"{tile_name}_pred_" + f"{alpha:.02f}".replace(".", "") + ".png"
+        savedir = os.path.join(polygon_root, save_filename)
 
         if not os.path.isfile(savedir):
-            for mask_file in glob.glob(
-                os.path.join(polygon_root, tile_name, "mask_np", "*.npy")
-            ):
+            tile_masks_dir = os.path.join(polygon_root, tile_name, "mask_np")
+            tile_masks = glob.glob(os.path.join(tile_masks_dir, "*.npy"))
+            for mask_file in tile_masks:
                 generate_alpha_for_tile(mask_file, mask_config, alpha)
 
             merge_preds(selected_polygon_analyze, tile_name, savedir, config)
