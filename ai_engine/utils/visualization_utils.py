@@ -62,6 +62,7 @@ def generate_save_alphablend(
     mask: Tensor,
     mask_config: dict,
     alphablend_path: str,
+    alpha: Union[float, None] = None,
 ):
     """Generates and saves alphablend
 
@@ -71,9 +72,10 @@ def generate_save_alphablend(
         name (str): Sample name
         mask_config (dict): Mask config
         alphablend_destination (str): Root path to save alphablend
+        alpha (Union[float, None]): Alpha to use for alphablend.
+                                    If None, default from config is used
     """
-    input_img, mask = prepare_tensors_for_vis(input_img, mask)
-    alpha = mask_config["alpha"]
+    alpha = mask_config["alpha"] if alpha is None else alpha
     colors_dict = mask_config["colors"]
     class2label = mask_config["class2label"]
     alphablended = create_alphablend(input_img, mask, alpha, colors_dict, class2label)

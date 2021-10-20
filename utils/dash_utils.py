@@ -17,7 +17,7 @@ from utils.io_utils import (
 )
 from ai_engine.utils.infer_utils import get_path_for_output
 from config.default import CfgNode
-from ai_engine.utils.visualization_utils import convert_np_for_vis, create_alphablend
+from ai_engine.utils.visualization_utils import generate_save_alphablend
 
 
 def get_coord_from_feature(feature):
@@ -228,16 +228,59 @@ def predict_action(
             config.DATA_DIR, selected_polygon_pred, f"{tile_name}_pred.png"
         )
         merge_preds(selected_polygon_pred, tile_name, savedir, config)
-        coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
-        tile_coord = coords[input_file.replace("npy", "png")]
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+
         paths.append(savedir)
-        coords_collected.append(converted_coord)
+
+        converted_coords = get_converted_coords(config, input_file)
+        coords_collected.append(converted_coords)
 
     return paths, coords_collected
+
+
+def generate_alpha_for_tile(mask_file: str, mask_config: dict, alpha: float) -> None:
+    """Generates alphablend for a single tile
+
+    Args:
+        mask_file (str): Path to the predicted tile mask
+        mask_config (dict): Mask config, should have
+                            "alpha", "class2label" and "colors" defined
+        alpha (float): Alpha for alphablend
+    """
+    input_single_file = mask_file.replace("/mask_np", "")
+    mask = np.load(mask_file)
+    input_img = convert_sat_np_for_vis(input_single_file)
+
+    name = os.path.splitext(os.path.split(mask_file)[1])[0]
+    destination = os.path.split(os.path.split(mask_file)[0])[0]
+    output_path = get_path_for_output("alphablend", destination, name)
+
+    generate_save_alphablend(
+        input_img,
+        mask,
+        mask_config,
+        output_path,
+        alpha,
+    )
+
+
+def get_converted_coords(config: CfgNode, input_file: str) -> List[List[float]]:
+    """Returns coordinates given a path to an image.
+       Supported image extensions are: [npy, png]
+
+    Args:
+        config (CfgNode): App config
+        input_file (str): Path to an image
+
+    Returns:
+        List[List[float]]: Coordinates in format [[south, west], [north, east]]
+    """
+    coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
+    tile_coord = coords[input_file.replace("npy", "png")]
+    converted_coord = [
+        [tile_coord["lat"][0], tile_coord["long"][0]],
+        [tile_coord["lat"][1], tile_coord["long"][1]],
+    ]
+    return converted_coord
 
 
 def new_alpha_action(
@@ -271,32 +314,14 @@ def new_alpha_action(
             for mask_file in glob.glob(
                 os.path.join(polygon_root, tile_name, "mask_np", "*.npy")
             ):
-
-                input_single_file = mask_file.replace("/mask_np", "")
-                mask = np.load(mask_file)
-                input_img = convert_sat_np_for_vis(input_single_file)
-
-                name = os.path.splitext(os.path.split(mask_file)[1])[0]
-                destination = os.path.join(polygon_root, tile_name)
-                output_path = get_path_for_output("alphablend", destination, name)
-
-                colors_dict = mask_config["colors"]
-                class2label = mask_config["class2label"]
-                alphablended = create_alphablend(
-                    input_img, mask, alpha, colors_dict, class2label
-                )
-                alphablended = cv2.cvtColor(alphablended, cv2.COLOR_BGR2RGB)
-                cv2.imwrite(output_path, alphablended)
+                generate_alpha_for_tile(mask_file, mask_config, alpha)
 
             merge_preds(selected_polygon_analyze, tile_name, savedir, config)
-        coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
-        tile_coord = coords[input_file.replace("npy", "png")]
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+
         paths.append(savedir)
-        coords_collected.append(converted_coord)
+
+        converted_coords = get_converted_coords(config, input_file)
+        coords_collected.append(converted_coords)
 
     return paths, coords_collected
 

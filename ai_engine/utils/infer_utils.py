@@ -14,6 +14,7 @@ from ai_engine.utils.np_utils import (
 )
 from ai_engine.utils.visualization_utils import (
     generate_save_alphablend,
+    prepare_tensors_for_vis,
 )
 
 
@@ -78,7 +79,10 @@ def infer(
             for input_img, mask, name in zip(inputs, masks, names):
 
                 output_path = get_path_for_output("alphablend", destination, name)
-                generate_save_alphablend(input_img, mask, mask_config, output_path)
-
                 output_path_mask = get_path_for_output("mask_np", destination, name)
                 np.save(output_path_mask, mask.cpu())
+
+                vis_input_img, vis_mask = prepare_tensors_for_vis(input_img, mask)
+                generate_save_alphablend(
+                    vis_input_img, vis_mask, mask_config, output_path
+                )
