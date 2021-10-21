@@ -1,6 +1,5 @@
 from dash import Dash, callback_context
 from dash.dependencies import Output, Input, State
-from dash.exceptions import PreventUpdate
 import dash_core_components as dcc
 import dash_html_components as html
 import dash_leaflet as dl

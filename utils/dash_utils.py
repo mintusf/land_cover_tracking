@@ -4,7 +4,6 @@ from typing import Dict, Tuple, List
 
 import cv2
 import numpy as np
-import torch
 
 from utils.ai_engine_wrapper import ai_engine_infer
 from utils.sentinel_api import get_raster_from_coord
