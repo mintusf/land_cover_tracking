@@ -5,6 +5,7 @@ import dash_html_components as html
 import dash_leaflet as dl
 from flask import Flask, send_from_directory
 
+from datetime import date
 import os
 from shutil import rmtree
 import plotly.express as px
@@ -112,15 +113,66 @@ app.layout = html.Div(
                                 "margin-top": "5vh",
                             },
                         ),
-                        dcc.Dropdown(
-                            id="polygon-dropdown",
-                            placeholder="Please choose the polygon",
-                            value="None",
-                            style={
-                                "width": "50vh",
-                                "height": "4vh",
-                                "fontSize": 20,
-                            },
+                        html.Div(
+                            [
+                                dcc.Dropdown(
+                                    id="year-dropdown",
+                                    placeholder="Year",
+                                    value="2021",
+                                    options=[
+                                        {"label": year, "value": year}
+                                        for year in range(2015, 2022)
+                                    ],
+                                    style={
+                                        "display": "inline-block",
+                                        "width": "7vh",
+                                        "height": "4vh",
+                                        "fontSize": 20,
+                                    },
+                                ),
+                                dcc.Dropdown(
+                                    id="month-dropdown",
+                                    placeholder="Month",
+                                    value="10",
+                                    options=[
+                                        {"label": month, "value": month_id}
+                                        for month, month_id in zip(
+                                            [
+                                                "JAN",
+                                                "FEB",
+                                                "MAR",
+                                                "APR",
+                                                "MAY",
+                                                "JUN",
+                                                "JUL",
+                                                "AUG",
+                                                "SEP",
+                                                "OCT",
+                                                "NOV",
+                                                "DEC",
+                                            ],
+                                            [f"{m_id:02d}" for m_id in range(1, 13)],
+                                        )
+                                    ],
+                                    style={
+                                        "display": "inline-block",
+                                        "width": "8vh",
+                                        "height": "4vh",
+                                        "fontSize": 20,
+                                    },
+                                ),
+                                dcc.Dropdown(
+                                    id="polygon-dropdown",
+                                    placeholder="Please choose the polygon",
+                                    value="None",
+                                    style={
+                                        "display": "inline-block",
+                                        "width": "35vh",
+                                        "height": "4vh",
+                                        "fontSize": 20,
+                                    },
+                                ),
+                            ]
                         ),
                         html.Button(
                             id="pred_button",
@@ -265,7 +317,7 @@ def mirror(x):
                 coord = get_coord_from_feature(feature)
                 choices.append(
                     {
-                        "label": f"{rect_idx}: Bottom left coord: {coord}",
+                        "label": f"{rect_idx}: Coordinates: {coord}",
                         "value": f"{feat_idx}",
                     }
                 )
@@ -291,7 +343,7 @@ def update_list_for_prediction(x):
             coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
             choices.append(
                 {
-                    "label": f"{option}: Top left coord: {coord_str}",
+                    "label": f"{option}: Coordinates: {coord_str}",
                     "value": f"{option}",
                 }
             )
@@ -354,6 +406,8 @@ def add_marker(selected_polygon, polygons):
         State("polygon-pred-dropdown", "value"),
         State("polygon-analyze-dropdown", "value"),
         State("edit_control", "geojson"),
+        State("year-dropdown", "value"),
+        State("month-dropdown", "value"),
     ],
 )
 def update_map(
@@ -365,12 +419,16 @@ def update_map(
     selected_polygon_pred,
     selected_polygon_analyze,
     polygons,
+    year,
+    month,
 ):
 
     ctx = callback_context.triggered
     if ctx[0]["prop_id"] == "download_raster.n_clicks":
 
-        paths, coords = download_action(polygons, selected_polygon_download, config)
+        paths, coords = download_action(
+            polygons, selected_polygon_download, config, year, month
+        )
         layer_name = "image"
 
     elif ctx[0]["prop_id"] == "pred_button.n_clicks":

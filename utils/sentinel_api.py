@@ -140,7 +140,7 @@ def get_used_bands_list(config: CfgNode) -> List[str]:
     return all_bands[: max_band + 1]
 
 
-def download_raster(tile_coord: Tuple[float], config: CfgNode) -> np.array:
+def download_raster(tile_coord: Tuple[float], config: CfgNode, year, month) -> np.array:
     """Given tile coordinates and resolution, downloads the tile using sentinelhub API
 
     Args:
@@ -156,14 +156,17 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode) -> np.array:
 
     cred_config = get_sentinelhub_config(config.SENTINEL_HUB.CONFIG)
 
+    start_date = f"{year}-{month}-01"
+    end_date = f"{year}-{month}-28"
+
     request_all_bands = SentinelHubRequest(
         evalscript=eval_script,
         input_data=[
             SentinelHubRequest.input_data(
                 data_collection=DataCollection.SENTINEL2_L1C,
                 time_interval=(
-                    config.SENTINEL_HUB.START_DATE,
-                    config.SENTINEL_HUB.END_DATE,
+                    start_date,
+                    end_date,
                 ),
                 mosaicking_order="leastCC",
             )
@@ -179,7 +182,7 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode) -> np.array:
 
 
 def get_raster_from_coord(
-    lat: Tuple[float], long: Tuple[float], config: CfgNode, savedir: str
+    lat: Tuple[float], long: Tuple[float], config: CfgNode, savedir: str, year, month
 ) -> Dict[str, Tuple[float]]:
     """Given lattitude, longitude of a polygon and resolution of target tiles,
         divides polygon into tiles, downloads them and save on disk
@@ -200,7 +203,7 @@ def get_raster_from_coord(
     os.makedirs(savedir, exist_ok=True)
     coords = {}
     for i, tile in enumerate(tiles):
-        img = download_raster(tile, config)
+        img = download_raster(tile, config, year, month)
         filename = f"tile_{i}"
         filepath = os.path.join(savedir, filename)
         np.save(filepath, img)
