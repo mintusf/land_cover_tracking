@@ -1,6 +1,22 @@
 # land_cover_tracking
-Land cover tracking Web App (MVP for now)
+This is a Web APP for land cover tracking and simple analysis using satellite data.
 
+Data is downloaded using integrated [sentinelhub](https://www.sentinel-hub.com/develop/api/) API.
+Area of interest, as well as dates range, can be selected using the GUI.
+
+Prediction is made using the model developed in [this repository](https://github.com/mintusf/land_cover_segmentation).
+
+Predicted classes:
+* shrublands
+* urban
+* agricultural
+* barren
+* snow
+* water
+* dense_forest
+* open_forest
+* wetlands
+* grasslands
 
 ## Environment
 
