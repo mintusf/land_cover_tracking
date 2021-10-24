@@ -140,6 +140,31 @@ def get_used_bands_list(config: CfgNode) -> List[str]:
     return all_bands[: max_band + 1]
 
 
+def get_date_range(year: int, season_id: int) -> Tuple[str]:
+    """Returns start and end date of the season
+
+    Args:
+        year (int): The year of the season
+        season_id (int): The season id
+
+    Raises:
+        ValueError: If season_id is not in range [1, 4]
+
+    Returns:
+        Tuple[str]: Start and end date of the season
+    """
+    if season_id == 1:
+        return f"{year}-JAN-01", f"{year}-MAR-30"
+    elif season_id == 2:
+        return f"{year}-APR-01", f"{year}-JUN-30"
+    elif season_id == 3:
+        return f"{year}-JUL-01", f"{year}-SEP-30"
+    elif season_id == 4:
+        return f"{year}-OCT-01", f"{year}-DEC-31"
+    else:
+        raise ValueError("Season id is not valid")
+
+
 def download_raster(tile_coord: Tuple[float], config: CfgNode, year, month) -> np.array:
     """Given tile coordinates and resolution, downloads the tile using sentinelhub API
 
@@ -156,8 +181,7 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode, year, month) -> n
 
     cred_config = get_sentinelhub_config(config.SENTINEL_HUB.CONFIG)
 
-    start_date = f"{year}-{month}-01"
-    end_date = f"{year}-{month}-28"
+    start_date, end_date = get_date_range(year, month)
 
     request_all_bands = SentinelHubRequest(
         evalscript=eval_script,

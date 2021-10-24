@@ -109,7 +109,7 @@ app.layout = html.Div(
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
-                                "width": "50vh",
+                                "width": "55vh",
                                 "margin-top": "5vh",
                             },
                         ),
@@ -121,43 +121,35 @@ app.layout = html.Div(
                                     value="2021",
                                     options=[
                                         {"label": year, "value": year}
-                                        for year in range(2015, 2022)
+                                        for year in range(2016, 2022)
                                     ],
                                     style={
                                         "display": "inline-block",
-                                        "width": "7vh",
-                                        "height": "4vh",
+                                        "width": "8vh",
+                                        "height": "3vh",
                                         "fontSize": 20,
                                     },
                                 ),
                                 dcc.Dropdown(
                                     id="month-dropdown",
-                                    placeholder="Month",
-                                    value="10",
+                                    placeholder="Season",
+                                    value=1,
                                     options=[
                                         {"label": month, "value": month_id}
                                         for month, month_id in zip(
                                             [
-                                                "JAN",
-                                                "FEB",
-                                                "MAR",
-                                                "APR",
-                                                "MAY",
-                                                "JUN",
-                                                "JUL",
-                                                "AUG",
-                                                "SEP",
-                                                "OCT",
-                                                "NOV",
-                                                "DEC",
+                                                "JAN-MAR",
+                                                "APR-JUN",
+                                                "JUL-SEP",
+                                                "OCT-DEC",
                                             ],
-                                            [f"{m_id:02d}" for m_id in range(1, 13)],
+                                            [season_id for season_id in range(1, 5)],
                                         )
                                     ],
                                     style={
                                         "display": "inline-block",
-                                        "width": "8vh",
-                                        "height": "4vh",
+                                        "width": "9vh",
+                                        "height": "3vh",
                                         "fontSize": 20,
                                     },
                                 ),
@@ -167,8 +159,8 @@ app.layout = html.Div(
                                     value="None",
                                     style={
                                         "display": "inline-block",
-                                        "width": "35vh",
-                                        "height": "4vh",
+                                        "width": "38vh",
+                                        "height": "3vh",
                                         "fontSize": 20,
                                     },
                                 ),
@@ -193,7 +185,7 @@ app.layout = html.Div(
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
-                                "width": "50vh",
+                                "width": "55vh",
                                 "margin-top": "2vh",
                             },
                         ),
@@ -203,7 +195,7 @@ app.layout = html.Div(
                             value="None",
                             style={
                                 "width": "100%",
-                                "height": "4vh",
+                                "height": "3vh",
                                 "fontSize": 20,
                             },
                         ),
@@ -226,7 +218,7 @@ app.layout = html.Div(
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
-                                "width": "50vh",
+                                "width": "55vh",
                                 "margin-top": "2vh",
                             },
                         ),
@@ -262,7 +254,7 @@ app.layout = html.Div(
                             value="None",
                             style={
                                 "width": "100%",
-                                "height": "4vh",
+                                "height": "3vh",
                                 "fontSize": 20,
                             },
                         ),
@@ -277,7 +269,8 @@ app.layout = html.Div(
                     ],
                     style={
                         "display": "inline-block",
-                        "margin-left": "3vw",
+                        "margin-left": "1vw",
+                        "margin-left": "1vw",
                         "position": "absolute",
                         "height": 200,
                     },
