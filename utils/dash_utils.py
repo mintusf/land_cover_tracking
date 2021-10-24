@@ -14,7 +14,9 @@ from utils.io_utils import (
     load_json,
     load_yaml,
 )
+from ai_engine.utils.infer_utils import get_path_for_output
 from config.default import CfgNode
+from ai_engine.utils.visualization_utils import generate_save_alphablend
 
 
 def get_coord_from_feature(feature):
@@ -152,12 +154,8 @@ def download_action(
         png_path = img_path.replace(".npy", ".png")
         cv2.imwrite(png_path, img)
 
-        # TODO: refactor to utils method
-        tile_coord = coords[png_path]
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+        converted_coord = get_converted_coords_from_dict(coords, png_path)
+
         paths.append(png_path)
         coords_collected.append(converted_coord)
 
@@ -173,13 +171,10 @@ def merge_preds(polygon_id: str, tile_name: str, savedir: str, config: CfgNode) 
         savedir (str): Saving directory
         config (CfgNode): App config
     """
-    whole_img = cv2.imread(
-        os.path.join(config.DATA_DIR, str(polygon_id), f"{tile_name}.png")
-    )
+    polygon_dir = os.path.join(config.DATA_DIR, str(polygon_id))
+    whole_img = cv2.imread(os.path.join(polygon_dir, f"{tile_name}.png"))
     for pred_path in glob.glob(
-        os.path.join(
-            config.DATA_DIR, str(polygon_id), f"{tile_name}", "alphablend", "*.png"
-        )
+        os.path.join(polygon_dir, f"{tile_name}", "alphablend", "*.png")
     ):
         parts = os.path.splitext(os.path.split(pred_path)[1])[0].split("_")
         x_min = int(parts[2])
@@ -210,29 +205,151 @@ def predict_action(
 
     paths = []
     coords_collected = []
-    for input_file in glob.glob(
-        os.path.join(config.DATA_DIR, selected_polygon_pred, "*.npy")
-    ):
+    input_files_dir = os.path.join(config.DATA_DIR, selected_polygon_pred)
+    for input_file in glob.glob(os.path.join(input_files_dir, "*.npy")):
         tile_name = os.path.splitext(os.path.split(input_file)[1])[0]
         ai_engine_infer(
             config,
             tile_path=input_file,
             checkpoint=config.INFER.WEIGHTS_PATH,
-            destination=os.path.join(config.DATA_DIR, selected_polygon_pred, tile_name),
+            destination=os.path.join(input_files_dir, tile_name),
         )
 
-        savedir = os.path.join(
-            config.DATA_DIR, selected_polygon_pred, f"{tile_name}_pred.png"
-        )
+        savedir = os.path.join(input_files_dir, f"{tile_name}_pred.png")
         merge_preds(selected_polygon_pred, tile_name, savedir, config)
-        coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
-        tile_coord = coords[input_file.replace("npy", "png")]
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+
         paths.append(savedir)
-        coords_collected.append(converted_coord)
+
+        converted_coords = get_converted_coords(config, input_file)
+        coords_collected.append(converted_coords)
+
+    return paths, coords_collected
+
+
+def generate_alpha_for_tile(mask_file: str, mask_config: dict, alpha: float) -> None:
+    """Generates alphablend for a single tile
+
+    Args:
+        mask_file (str): Path to the predicted tile mask
+        mask_config (dict): Mask config, should have
+                            "alpha", "class2label" and "colors" defined
+        alpha (float): Alpha for alphablend
+    """
+    input_single_file = mask_file.replace("/mask_np", "")
+    mask = np.load(mask_file)
+    input_img = convert_sat_np_for_vis(input_single_file)
+
+    name = os.path.splitext(os.path.split(mask_file)[1])[0]
+    destination = os.path.split(os.path.split(mask_file)[0])[0]
+    output_path = get_path_for_output("alphablend", destination, name)
+
+    generate_save_alphablend(
+        input_img,
+        mask,
+        mask_config,
+        output_path,
+        alpha,
+    )
+
+
+def convert_coords(coords_in: Dict[str, List[float]]) -> List[List[float]]:
+    """Converts coordinates from a dict to a list
+
+    Args:
+        coords_in (Dict[str, List[float]]): Dictionary with following elements:
+            'lat':
+                [south, north]
+            'long':
+                [west, east]
+
+    Returns:
+        List[List[float]]: Coordinates in format [[south, west], [north, east]]
+    """
+    converted_coord = [
+        [coords_in["lat"][0], coords_in["long"][0]],
+        [coords_in["lat"][1], coords_in["long"][1]],
+    ]
+    return converted_coord
+
+
+def get_converted_coords_from_dict(
+    coords_dict: Dict[str, Dict[str, List[float]]], key: str
+) -> List[List[float]]:
+    """Returns covnerted coordinates from a dictionary given a key
+
+    Args:
+        coords_dict (Dict[Dict[str, float]]): Dictionary with following elements:
+            path_to_a_png_tile_file:
+                'lat':
+                    [south value, north value]
+                'long':
+                    [west value, east value]
+
+        key (str): Key in a dictionary
+
+    Returns:
+        List[List[float]]: Coordinates in format [[south, west], [north, east]]
+    """
+    tile_coord = coords_dict[key]
+
+    converted_coords = convert_coords(tile_coord)
+    return converted_coords
+
+
+def get_converted_coords(config: CfgNode, input_file: str) -> List[List[float]]:
+    """Returns coordinates given a path to an image.
+       Supported image extensions are: [npy, png]
+
+    Args:
+        config (CfgNode): App config
+        input_file (str): Path to an image
+
+    Returns:
+        List[List[float]]: Coordinates in format [[south, west], [north, east]]
+    """
+    coords = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
+    png_path = input_file.replace("npy", "png")
+    converted_coord = get_converted_coords_from_dict(coords, png_path)
+    return converted_coord
+
+
+def new_alpha_action(
+    config: CfgNode, selected_polygon_analyze: str, alpha
+) -> Tuple[List[str], List[float]]:
+    """Performs prediction on selected downloaded are
+
+    Args:
+        config (CfgNode): App config
+        selected_polygon_pred (str): Id of selected area, corresponds to folder name
+
+    Returns:
+        Tuple[List[str], List[float]]: A Tuple containing
+            * List of paths to downloaded image
+            * List of corresponding coordinates, in format:
+                [[south, west], [north, east]]
+    """
+
+    paths = []
+    coords_collected = []
+    mask_config = load_yaml(config.DATASET.MASK.CONFIG)
+    polygon_root = os.path.join(config.DATA_DIR, selected_polygon_analyze)
+    for input_file in glob.glob(os.path.join(polygon_root, "*.npy")):
+        tile_name = os.path.splitext(os.path.split(input_file)[1])[0]
+        save_filename = f"{tile_name}_pred_" + f"{alpha:.02f}".replace(".", "") + ".png"
+        savedir = os.path.join(polygon_root, save_filename)
+
+        if not os.path.isfile(savedir):
+            tile_masks_dir = os.path.join(polygon_root, tile_name, "mask_np")
+            tile_masks = glob.glob(os.path.join(tile_masks_dir, "*.npy"))
+            for mask_file in tile_masks:
+                generate_alpha_for_tile(mask_file, mask_config, alpha)
+
+            merge_preds(selected_polygon_analyze, tile_name, savedir, config)
+
+        paths.append(savedir)
+
+        converted_coords = get_converted_coords(config, input_file)
+        coords_collected.append(converted_coords)
 
     return paths, coords_collected
 
@@ -259,13 +376,10 @@ def refresh_action(config: CfgNode) -> Tuple[List[str], List[float]]:
             url = pred_path
         else:
             url = key
-        converted_coord = [
-            [tile_coord["lat"][0], tile_coord["long"][0]],
-            [tile_coord["lat"][1], tile_coord["long"][1]],
-        ]
+        converted_coords = convert_coords(tile_coord)
 
         paths.append(url)
-        coords.append(converted_coord)
+        coords.append(converted_coords)
 
     return paths, coords
 
@@ -281,7 +395,7 @@ def get_classes_count(polygon_id: str, config: CfgNode) -> Dict[str, int]:
         Dict[str, int]: Classes counts
     """
     polygon_dir = os.path.join(config.DATA_DIR, str(polygon_id))
-    all_masks = glob.glob(os.path.join(polygon_dir, "*", "mask", "*.npy"))
+    all_masks = glob.glob(os.path.join(polygon_dir, "*", "mask_np", "*.npy"))
     mask_config = load_yaml(config.DATASET.MASK.CONFIG)
     class2label = mask_config["class2label"]
     all_counts = np.zeros(len(class2label))

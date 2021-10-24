@@ -7,7 +7,6 @@ from ai_engine.models import get_model
 from utils.ai_engine_wrapper import ai_engine_infer
 
 import numpy as np
-import rasterio as rio
 
 
 def build_dummy_infer_npy(model_cfg, savepath):
