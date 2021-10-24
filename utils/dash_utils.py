@@ -118,6 +118,13 @@ def get_corner_coord(
     return [vertical_coord, horizontal_coord]
 
 
+def get_polygon_id_from_json(all_coords_json, coord):
+    for polygon_id, coord_dict in all_coords_json.items():
+        if coord == coord_dict:
+            return int(os.path.split(polygon_id)[1].split("_")[0])
+    return -1
+
+
 def download_action(
     polygons: dict,
     selected_polygon_download: str,
@@ -145,8 +152,15 @@ def download_action(
     """
     coord = get_polygon_coord(polygons, int(selected_polygon_download))
 
-    foldername = get_next_folder_name(config.DATA_DIR)
-    savedir = os.path.join(config.DATA_DIR, foldername)
+    all_coords_json = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
+    polygon_id = get_polygon_id_from_json(all_coords_json, coord)
+    if polygon_id >= 0:
+        foldername = str(polygon_id)
+    else:
+        foldername = get_next_folder_name(config.DATA_DIR)
+    savedir = os.path.join(config.DATA_DIR, foldername + f"_s{season}")
+
+    # Save coords for whole polygon and all tiles
     coords = get_raster_from_coord(coord[0], coord[1], config, savedir, year, season)
 
     write_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME), coords)

@@ -330,16 +330,22 @@ def update_list_for_prediction(x):
     choices = []
     foldername = get_next_folder_name(DATA_DIR)
     if x is not None:
+        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
         for option in range(int(foldername)):
-            coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-            coord = coords[os.path.join(DATA_DIR, str(option), "tile_0.png")]
-            coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
-            choices.append(
-                {
-                    "label": f"{option}: Coordinates: {coord_str}",
-                    "value": f"{option}",
-                }
-            )
+            for season_id in range(1, 5):
+                key = os.path.join(
+                    DATA_DIR, str(option) + f"_s{season_id}", "tile_0.png"
+                )
+                if key not in coords:
+                    continue
+                coord = coords[key]
+                coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
+                choices.append(
+                    {
+                        "label": f"{option}: Coordinates: {coord_str} s{season_id}",
+                        "value": f"{option}_s{season_id}",
+                    }
+                )
 
     return choices
 
@@ -413,14 +419,14 @@ def update_map(
     selected_polygon_analyze,
     polygons,
     year,
-    month,
+    season,
 ):
 
     ctx = callback_context.triggered
     if ctx[0]["prop_id"] == "download_raster.n_clicks":
 
         paths, coords = download_action(
-            polygons, selected_polygon_download, config, year, month
+            polygons, selected_polygon_download, config, year, season
         )
         layer_name = "image"
 
@@ -462,17 +468,22 @@ def update_list_for_analysis(x):
     foldername = get_next_folder_name(DATA_DIR)
     if x is not None:
         for option in range(int(foldername)):
-            first_tile_path = os.path.join(DATA_DIR, str(option), "tile_0.png")
-            if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
-                coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-                coord = coords[first_tile_path]
-                coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
-                choices.append(
-                    {
-                        "label": f"{option}: Top left coord: {coord_str}",
-                        "value": f"{option}",
-                    }
+            for season_id in range(1, 5):
+                first_tile_path = os.path.join(
+                    DATA_DIR, str(option) + f"_s{season_id}", "tile_0.png"
                 )
+                if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
+                    coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
+                    coord = coords[first_tile_path]
+                    coord_str = (
+                        f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
+                    )
+                    choices.append(
+                        {
+                            "label": f"{option}: Coordinates: {coord_str} s{season_id}",
+                            "value": f"{option}_s{season_id}",
+                        }
+                    )
 
     return choices
 
@@ -510,4 +521,4 @@ def plot_stats(clicks, polygon_id, style):
     return fig, style
 
 
-app.run_server(debug=True, port=8208)
+app.run_server(debug=True, port=8608)

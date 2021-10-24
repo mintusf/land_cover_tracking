@@ -237,7 +237,7 @@ def get_raster_from_coord(
 
     # Get all rasters and save them
     os.makedirs(savedir, exist_ok=True)
-    coords = {}
+    coords = {savedir: (lat, long)}
     for i, tile in enumerate(tiles):
         img = download_raster(tile, config, year, season)
         filename = f"tile_{i}"

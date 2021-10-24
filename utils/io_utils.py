@@ -95,7 +95,8 @@ def get_next_folder_name(dir: str) -> str:
     if len(files) == 0:
         return "0"
     else:
-        all_folders_ids = [int(os.path.split(os.path.split(f)[0])[-1]) for f in files]
+        all_folders_names = [os.path.split(os.path.split(f)[0])[-1] for f in files]
+        all_folders_ids = [int(f.split("_")[0]) for f in all_folders_names]
         return str(max(all_folders_ids) + 1)
 
 
