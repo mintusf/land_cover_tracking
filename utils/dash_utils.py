@@ -391,6 +391,8 @@ def refresh_action(config: CfgNode) -> Tuple[List[str], List[float]]:
     paths = []
     coords = []
     for key, tile_coord in coords_all.items():
+        if "tile" not in key:
+            continue
         pred_path = key.replace(".png", "_pred.png")
         if os.path.isfile(pred_path):
             url = pred_path
@@ -451,3 +453,33 @@ def get_top_labels(labels_counts: Dict[str, int], k: int) -> Tuple[np.array, Lis
             counts.append(labels_counts[label])
             labels.append(label)
     return np.array(counts), labels
+
+
+def add_choice(
+    choices: list, coord: Dict[str, List[float]], option: int, season_id: int
+) -> None:
+    """Adds choice to the list of choices used for a dropdown component
+
+    Args:
+        choices (list): List of choices
+        coord (Dict[str, List[float]]): Coordinates of the choice
+        option (int): Option number
+        season_id (int): Season id
+    """
+    coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
+    if season_id == 1:
+        season_str = "JAN-MAR"
+    elif season_id == 2:
+        season_str = "APR-JUN"
+    elif season_id == 3:
+        season_str = "JUL-SEP"
+    elif season_id == 4:
+        season_str = "OCT-DEC"
+    else:
+        raise ValueError("Season id is not valid")
+    choices.append(
+        {
+            "label": f"Polygon {option} (Coord: {coord_str}),  {season_str}",
+            "value": f"{option}_s{season_id}",
+        }
+    )

@@ -21,6 +21,7 @@ from utils.dash_utils import (
     get_classes_count,
     get_top_labels,
     new_alpha_action,
+    add_choice,
 )
 
 from utils.io_utils import (
@@ -339,13 +340,7 @@ def update_list_for_prediction(x):
                 if key not in coords:
                     continue
                 coord = coords[key]
-                coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
-                choices.append(
-                    {
-                        "label": f"{option}: Coordinates: {coord_str} s{season_id}",
-                        "value": f"{option}_s{season_id}",
-                    }
-                )
+                add_choice(choices, coord, option, season_id)
 
     return choices
 
@@ -399,6 +394,7 @@ def add_marker(selected_polygon, polygons):
     [
         Input("download_raster", "n_clicks"),
         Input("pred_button", "n_clicks"),
+        Input("analyze_button", "n_clicks"),
         Input("ratio-slider", "value"),
         State("map", "children"),
         State("polygon-dropdown", "value"),
@@ -412,6 +408,7 @@ def add_marker(selected_polygon, polygons):
 def update_map(
     download_button,
     pred_button,
+    analyze_button,
     slider_value,
     cur_children,
     selected_polygon_download,
@@ -435,7 +432,10 @@ def update_map(
         paths, coords = predict_action(config, selected_polygon_pred)
         layer_name = "mask"
 
-    elif ctx[0]["prop_id"] == "ratio-slider.value":
+    elif (
+        ctx[0]["prop_id"] == "ratio-slider.value"
+        or ctx[0]["prop_id"] == "analyze_button.n_clicks"
+    ):
         if selected_polygon_analyze is None or selected_polygon_analyze == "None":
             return [cur_children]
         else:
@@ -475,15 +475,7 @@ def update_list_for_analysis(x):
                 if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
                     coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
                     coord = coords[first_tile_path]
-                    coord_str = (
-                        f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
-                    )
-                    choices.append(
-                        {
-                            "label": f"{option}: Coordinates: {coord_str} s{season_id}",
-                            "value": f"{option}_s{season_id}",
-                        }
-                    )
+                    add_choice(choices, coord, option, season_id)
 
     return choices
 
@@ -521,4 +513,4 @@ def plot_stats(clicks, polygon_id, style):
     return fig, style
 
 
-app.run_server(debug=True, port=8608)
+app.run_server(debug=True, port=8108)
