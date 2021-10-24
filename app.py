@@ -59,7 +59,7 @@ app.layout = html.Div(
                 dl.Map(
                     center=[56, 10],
                     zoom=4,
-                    bounds=[[50, 20], [50.5, 20.5]],
+                    bounds=[[35, 0], [55, 40]],
                     children=[
                         dl.TileLayer(),
                         dl.Marker(
@@ -384,6 +384,8 @@ def add_marker(selected_polygon, polygons):
     if selected_polygon == "None":
         return [[0, 0]]
     else:
+        if not len(polygons["features"]):
+            return [[0, 0]]
         coord = get_polygon_coord(polygons, int(selected_polygon))
         top_right = [coord[0][1], coord[1][1]]
         return [top_right]

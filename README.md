@@ -41,5 +41,9 @@ Predicted classes:
 2. Download weigths from [here](https://drive.google.com/file/d/1REnApKRIkTvpRRLAbheBX_4OFJKQtp0N/view?usp=sharing) and put it to `weights` folder (more weigths coming)
 3. To start, in your environment, please run `python app.py`.
 
-Demo:
+
+### Demo:
 ![DEMO](assets/DEMO.gif)
+
+### Some land cover comparisons
+![DEMO](assets/DEMO.PNG)
