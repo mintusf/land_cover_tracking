@@ -158,7 +158,7 @@ def download_action(
         foldername = str(polygon_id)
     else:
         foldername = get_next_folder_name(config.DATA_DIR)
-    savedir = os.path.join(config.DATA_DIR, foldername + f"_s{season}")
+    savedir = os.path.join(config.DATA_DIR, foldername + f"_y{year}_s{season}")
 
     # Save coords for whole polygon and all tiles
     coords = get_raster_from_coord(coord[0], coord[1], config, savedir, year, season)
@@ -456,7 +456,7 @@ def get_top_labels(labels_counts: Dict[str, int], k: int) -> Tuple[np.array, Lis
 
 
 def add_choice(
-    choices: list, coord: Dict[str, List[float]], option: int, season_id: int
+    choices: list, coord: Dict[str, List[float]], option: int, year: int, season_id: int
 ) -> None:
     """Adds choice to the list of choices used for a dropdown component
 
@@ -479,7 +479,7 @@ def add_choice(
         raise ValueError("Season id is not valid")
     choices.append(
         {
-            "label": f"Polygon {option} (Coord: {coord_str}),  {season_str}",
-            "value": f"{option}_s{season_id}",
+            "label": f"Polygon {option} (Coord: {coord_str}), {year}  {season_str}",
+            "value": f"{option}_y{year}_s{season_id}",
         }
     )

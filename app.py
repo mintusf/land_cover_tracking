@@ -333,13 +333,14 @@ def update_list_for_prediction(x):
         coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
         for option in range(int(foldername)):
             for season_id in range(1, 5):
-                key = os.path.join(
-                    DATA_DIR, str(option) + f"_s{season_id}", "tile_0.png"
-                )
-                if key not in coords:
-                    continue
-                coord = coords[key]
-                add_choice(choices, coord, option, season_id)
+                for year in range(2016, 2022):
+                    key = os.path.join(
+                        DATA_DIR, str(option) + f"_y{year}_s{season_id}", "tile_0.png"
+                    )
+                    if key not in coords:
+                        continue
+                    coord = coords[key]
+                    add_choice(choices, coord, option, year, season_id)
 
     return choices
 
@@ -468,13 +469,14 @@ def update_list_for_analysis(x):
     if x is not None:
         for option in range(int(foldername)):
             for season_id in range(1, 5):
-                first_tile_path = os.path.join(
-                    DATA_DIR, str(option) + f"_s{season_id}", "tile_0.png"
-                )
-                if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
-                    coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-                    coord = coords[first_tile_path]
-                    add_choice(choices, coord, option, season_id)
+                for year in range(2016, 2022):
+                    first_tile_path = os.path.join(
+                        DATA_DIR, str(option) + f"_y{year}_s{season_id}", "tile_0.png"
+                    )
+                    if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
+                        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
+                        coord = coords[first_tile_path]
+                        add_choice(choices, coord, option, year, season_id)
 
     return choices
 
@@ -512,4 +514,4 @@ def plot_stats(clicks, polygon_id, style):
     return fig, style
 
 
-app.run_server(debug=True, port=8108)
+app.run_server(debug=True, port=8888)
