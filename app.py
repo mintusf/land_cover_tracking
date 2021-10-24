@@ -20,6 +20,7 @@ from utils.dash_utils import (
     get_classes_count,
     get_top_labels,
     new_alpha_action,
+    add_choice,
 )
 
 from utils.io_utils import (
@@ -108,19 +109,62 @@ app.layout = html.Div(
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
-                                "width": "50vh",
+                                "width": "55vh",
                                 "margin-top": "5vh",
                             },
                         ),
-                        dcc.Dropdown(
-                            id="polygon-dropdown",
-                            placeholder="Please choose the polygon",
-                            value="None",
-                            style={
-                                "width": "50vh",
-                                "height": "4vh",
-                                "fontSize": 20,
-                            },
+                        html.Div(
+                            [
+                                dcc.Dropdown(
+                                    id="year-dropdown",
+                                    placeholder="Year",
+                                    value="2021",
+                                    options=[
+                                        {"label": year, "value": year}
+                                        for year in range(2016, 2022)
+                                    ],
+                                    style={
+                                        "display": "inline-block",
+                                        "width": "8vh",
+                                        "height": "3vh",
+                                        "fontSize": 20,
+                                    },
+                                ),
+                                dcc.Dropdown(
+                                    id="month-dropdown",
+                                    placeholder="Season",
+                                    value=1,
+                                    options=[
+                                        {"label": month, "value": month_id}
+                                        for month, month_id in zip(
+                                            [
+                                                "JAN-MAR",
+                                                "APR-JUN",
+                                                "JUL-SEP",
+                                                "OCT-DEC",
+                                            ],
+                                            [season_id for season_id in range(1, 5)],
+                                        )
+                                    ],
+                                    style={
+                                        "display": "inline-block",
+                                        "width": "9vh",
+                                        "height": "3vh",
+                                        "fontSize": 20,
+                                    },
+                                ),
+                                dcc.Dropdown(
+                                    id="polygon-dropdown",
+                                    placeholder="Please choose the polygon",
+                                    value="None",
+                                    style={
+                                        "display": "inline-block",
+                                        "width": "38vh",
+                                        "height": "3vh",
+                                        "fontSize": 20,
+                                    },
+                                ),
+                            ]
                         ),
                         html.Button(
                             id="pred_button",
@@ -141,7 +185,7 @@ app.layout = html.Div(
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
-                                "width": "50vh",
+                                "width": "55vh",
                                 "margin-top": "2vh",
                             },
                         ),
@@ -151,7 +195,7 @@ app.layout = html.Div(
                             value="None",
                             style={
                                 "width": "100%",
-                                "height": "4vh",
+                                "height": "3vh",
                                 "fontSize": 20,
                             },
                         ),
@@ -174,7 +218,7 @@ app.layout = html.Div(
                             style={
                                 "display": "inline-block",
                                 "textalign": "center",
-                                "width": "50vh",
+                                "width": "55vh",
                                 "margin-top": "2vh",
                             },
                         ),
@@ -210,7 +254,7 @@ app.layout = html.Div(
                             value="None",
                             style={
                                 "width": "100%",
-                                "height": "4vh",
+                                "height": "3vh",
                                 "fontSize": 20,
                             },
                         ),
@@ -225,7 +269,8 @@ app.layout = html.Div(
                     ],
                     style={
                         "display": "inline-block",
-                        "margin-left": "3vw",
+                        "margin-left": "1vw",
+                        "margin-left": "1vw",
                         "position": "absolute",
                         "height": 200,
                     },
@@ -265,7 +310,7 @@ def mirror(x):
                 coord = get_coord_from_feature(feature)
                 choices.append(
                     {
-                        "label": f"{rect_idx}: Bottom left coord: {coord}",
+                        "label": f"{rect_idx}: Coordinates: {coord}",
                         "value": f"{feat_idx}",
                     }
                 )
@@ -285,16 +330,16 @@ def update_list_for_prediction(x):
     choices = []
     foldername = get_next_folder_name(DATA_DIR)
     if x is not None:
+        coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
         for option in range(int(foldername)):
-            coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-            coord = coords[os.path.join(DATA_DIR, str(option), "tile_0.png")]
-            coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
-            choices.append(
-                {
-                    "label": f"{option}: Top left coord: {coord_str}",
-                    "value": f"{option}",
-                }
-            )
+            for season_id in range(1, 5):
+                key = os.path.join(
+                    DATA_DIR, str(option) + f"_s{season_id}", "tile_0.png"
+                )
+                if key not in coords:
+                    continue
+                coord = coords[key]
+                add_choice(choices, coord, option, season_id)
 
     return choices
 
@@ -348,29 +393,37 @@ def add_marker(selected_polygon, polygons):
     [
         Input("download_raster", "n_clicks"),
         Input("pred_button", "n_clicks"),
+        Input("analyze_button", "n_clicks"),
         Input("ratio-slider", "value"),
         State("map", "children"),
         State("polygon-dropdown", "value"),
         State("polygon-pred-dropdown", "value"),
         State("polygon-analyze-dropdown", "value"),
         State("edit_control", "geojson"),
+        State("year-dropdown", "value"),
+        State("month-dropdown", "value"),
     ],
 )
 def update_map(
     download_button,
     pred_button,
+    analyze_button,
     slider_value,
     cur_children,
     selected_polygon_download,
     selected_polygon_pred,
     selected_polygon_analyze,
     polygons,
+    year,
+    season,
 ):
 
     ctx = callback_context.triggered
     if ctx[0]["prop_id"] == "download_raster.n_clicks":
 
-        paths, coords = download_action(polygons, selected_polygon_download, config)
+        paths, coords = download_action(
+            polygons, selected_polygon_download, config, year, season
+        )
         layer_name = "image"
 
     elif ctx[0]["prop_id"] == "pred_button.n_clicks":
@@ -378,7 +431,10 @@ def update_map(
         paths, coords = predict_action(config, selected_polygon_pred)
         layer_name = "mask"
 
-    elif ctx[0]["prop_id"] == "ratio-slider.value":
+    elif (
+        ctx[0]["prop_id"] == "ratio-slider.value"
+        or ctx[0]["prop_id"] == "analyze_button.n_clicks"
+    ):
         if selected_polygon_analyze is None or selected_polygon_analyze == "None":
             return [cur_children]
         else:
@@ -411,17 +467,14 @@ def update_list_for_analysis(x):
     foldername = get_next_folder_name(DATA_DIR)
     if x is not None:
         for option in range(int(foldername)):
-            first_tile_path = os.path.join(DATA_DIR, str(option), "tile_0.png")
-            if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
-                coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
-                coord = coords[first_tile_path]
-                coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
-                choices.append(
-                    {
-                        "label": f"{option}: Top left coord: {coord_str}",
-                        "value": f"{option}",
-                    }
+            for season_id in range(1, 5):
+                first_tile_path = os.path.join(
+                    DATA_DIR, str(option) + f"_s{season_id}", "tile_0.png"
                 )
+                if os.path.isfile(first_tile_path.replace(".png", "_pred.png")):
+                    coords = load_json(os.path.join(DATA_DIR, POLYGON_JSON_NAME))
+                    coord = coords[first_tile_path]
+                    add_choice(choices, coord, option, season_id)
 
     return choices
 
@@ -459,4 +512,4 @@ def plot_stats(clicks, polygon_id, style):
     return fig, style
 
 
-app.run_server(debug=True, port=8208)
+app.run_server(debug=True, port=8108)

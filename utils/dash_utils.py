@@ -118,8 +118,19 @@ def get_corner_coord(
     return [vertical_coord, horizontal_coord]
 
 
+def get_polygon_id_from_json(all_coords_json, coord):
+    for polygon_id, coord_dict in all_coords_json.items():
+        if coord == coord_dict:
+            return int(os.path.split(polygon_id)[1].split("_")[0])
+    return -1
+
+
 def download_action(
-    polygons: dict, selected_polygon_download: str, config: CfgNode
+    polygons: dict,
+    selected_polygon_download: str,
+    config: CfgNode,
+    year: int,
+    season: int,
 ) -> Tuple[List[str], List[float]]:
     """Downloads satellite data using sentinel API.
         Due to API limitation, if a selected polygon is too big,
@@ -130,6 +141,8 @@ def download_action(
         polygons (dict): Dictioneries with coordinates of all polygons
         selected_polygon_download (str): Id of selected polygon for download
         config (CfgNode): App config
+        year (int): Year of the satellite data
+        season (str): Season of the satellite data
 
     Returns:
         Tuple[List[str], List[float]]: A Tuple containing
@@ -139,9 +152,16 @@ def download_action(
     """
     coord = get_polygon_coord(polygons, int(selected_polygon_download))
 
-    foldername = get_next_folder_name(config.DATA_DIR)
-    savedir = os.path.join(config.DATA_DIR, foldername)
-    coords = get_raster_from_coord(coord[0], coord[1], config, savedir)
+    all_coords_json = load_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME))
+    polygon_id = get_polygon_id_from_json(all_coords_json, coord)
+    if polygon_id >= 0:
+        foldername = str(polygon_id)
+    else:
+        foldername = get_next_folder_name(config.DATA_DIR)
+    savedir = os.path.join(config.DATA_DIR, foldername + f"_s{season}")
+
+    # Save coords for whole polygon and all tiles
+    coords = get_raster_from_coord(coord[0], coord[1], config, savedir, year, season)
 
     write_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME), coords)
 
@@ -371,6 +391,8 @@ def refresh_action(config: CfgNode) -> Tuple[List[str], List[float]]:
     paths = []
     coords = []
     for key, tile_coord in coords_all.items():
+        if "tile" not in key:
+            continue
         pred_path = key.replace(".png", "_pred.png")
         if os.path.isfile(pred_path):
             url = pred_path
@@ -431,3 +453,33 @@ def get_top_labels(labels_counts: Dict[str, int], k: int) -> Tuple[np.array, Lis
             counts.append(labels_counts[label])
             labels.append(label)
     return np.array(counts), labels
+
+
+def add_choice(
+    choices: list, coord: Dict[str, List[float]], option: int, season_id: int
+) -> None:
+    """Adds choice to the list of choices used for a dropdown component
+
+    Args:
+        choices (list): List of choices
+        coord (Dict[str, List[float]]): Coordinates of the choice
+        option (int): Option number
+        season_id (int): Season id
+    """
+    coord_str = f"lat {coord['lat'][0]:.2f}, long {coord['long'][0]:.2f}"
+    if season_id == 1:
+        season_str = "JAN-MAR"
+    elif season_id == 2:
+        season_str = "APR-JUN"
+    elif season_id == 3:
+        season_str = "JUL-SEP"
+    elif season_id == 4:
+        season_str = "OCT-DEC"
+    else:
+        raise ValueError("Season id is not valid")
+    choices.append(
+        {
+            "label": f"Polygon {option} (Coord: {coord_str}),  {season_str}",
+            "value": f"{option}_s{season_id}",
+        }
+    )
