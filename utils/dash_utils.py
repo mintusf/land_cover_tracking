@@ -119,7 +119,11 @@ def get_corner_coord(
 
 
 def download_action(
-    polygons: dict, selected_polygon_download: str, config: CfgNode, year, month
+    polygons: dict,
+    selected_polygon_download: str,
+    config: CfgNode,
+    year: int,
+    season: int,
 ) -> Tuple[List[str], List[float]]:
     """Downloads satellite data using sentinel API.
         Due to API limitation, if a selected polygon is too big,
@@ -130,6 +134,8 @@ def download_action(
         polygons (dict): Dictioneries with coordinates of all polygons
         selected_polygon_download (str): Id of selected polygon for download
         config (CfgNode): App config
+        year (int): Year of the satellite data
+        season (str): Season of the satellite data
 
     Returns:
         Tuple[List[str], List[float]]: A Tuple containing
@@ -141,7 +147,7 @@ def download_action(
 
     foldername = get_next_folder_name(config.DATA_DIR)
     savedir = os.path.join(config.DATA_DIR, foldername)
-    coords = get_raster_from_coord(coord[0], coord[1], config, savedir, year, month)
+    coords = get_raster_from_coord(coord[0], coord[1], config, savedir, year, season)
 
     write_json(os.path.join(config.DATA_DIR, config.POLYGON_JSON_NAME), coords)
 

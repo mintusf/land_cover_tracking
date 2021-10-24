@@ -165,12 +165,16 @@ def get_date_range(year: int, season_id: int) -> Tuple[str]:
         raise ValueError("Season id is not valid")
 
 
-def download_raster(tile_coord: Tuple[float], config: CfgNode, year, month) -> np.array:
+def download_raster(
+    tile_coord: Tuple[float], config: CfgNode, year: int, season: int
+) -> np.array:
     """Given tile coordinates and resolution, downloads the tile using sentinelhub API
 
     Args:
         tile_coord (Tuple[float]): The coordinates of the tile
         resolution (float): The resolution of the image (in meters)
+        year (int): The year of the season
+        season (int): The season id
 
     Returns:
         np.array: The downloaded tile with shape (h, w, bands)
@@ -181,7 +185,7 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode, year, month) -> n
 
     cred_config = get_sentinelhub_config(config.SENTINEL_HUB.CONFIG)
 
-    start_date, end_date = get_date_range(year, month)
+    start_date, end_date = get_date_range(year, season)
 
     request_all_bands = SentinelHubRequest(
         evalscript=eval_script,
@@ -206,7 +210,12 @@ def download_raster(tile_coord: Tuple[float], config: CfgNode, year, month) -> n
 
 
 def get_raster_from_coord(
-    lat: Tuple[float], long: Tuple[float], config: CfgNode, savedir: str, year, month
+    lat: Tuple[float],
+    long: Tuple[float],
+    config: CfgNode,
+    savedir: str,
+    year: int,
+    season: int,
 ) -> Dict[str, Tuple[float]]:
     """Given lattitude, longitude of a polygon and resolution of target tiles,
         divides polygon into tiles, downloads them and save on disk
@@ -216,6 +225,9 @@ def get_raster_from_coord(
         long (Tuple[float]): The longitude of the polygon [west, east]
         resolution (float): The resolution of the image (in meters)
         savedir (str): The directory to save the downloaded tiles
+        year (int): The year of the season
+        season (int): The season id
+
 
     Returns:
         Dict[str, Tuple[float]]: [description]
@@ -227,7 +239,7 @@ def get_raster_from_coord(
     os.makedirs(savedir, exist_ok=True)
     coords = {}
     for i, tile in enumerate(tiles):
-        img = download_raster(tile, config, year, month)
+        img = download_raster(tile, config, year, season)
         filename = f"tile_{i}"
         filepath = os.path.join(savedir, filename)
         np.save(filepath, img)
