@@ -5,7 +5,6 @@ import dash_html_components as html
 import dash_leaflet as dl
 from flask import Flask, send_from_directory
 
-from datetime import date
 import os
 from shutil import rmtree
 import plotly.express as px
